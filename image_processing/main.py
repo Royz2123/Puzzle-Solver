@@ -10,8 +10,10 @@ RESULTS_BASE = "./results/"
 THRESH = 75
 CNT_THRESH = 50
 
+
 def relevant_section(img):
     return img[-900:-200,-650:-200]
+
 
 def output(name, img):
     cv2.imshow(name, img)
@@ -65,6 +67,18 @@ for cnt in contours:
         cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
 output('above masked with centers', recoged)
+
+# edge and corner detection
+
+dst = cv2.cornerHarris(below, 3, 3, 0.04)
+
+#result is dilated for marking the corners, not important
+dst = cv2.dilate(dst,None)
+
+# Threshold for an optimal value, it may vary depending on the image.
+masked[dst > 0.15*dst.max()]=[0,0,255]
+
+cv2.imshow('with corners', masked)
 
 k = cv2.waitKey(0)
 cv2.destroyAllWindows()
