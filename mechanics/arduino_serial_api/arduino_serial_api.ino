@@ -29,6 +29,13 @@ void setup() {
     for(int i = 0; i < 14; i++) {
       pinMode(i, OUTPUT);
     }
+
+    // disable all other devices
+    digitalWrite(enablePinX, HIGH);
+    digitalWrite(enablePinY, HIGH);
+    digitalWrite(enablePinZ, HIGH);
+    digitalWrite(enablePinTheta, HIGH);
+    digitalWrite(pumpPin, HIGH);
 }
 
 void loop() {
@@ -127,9 +134,11 @@ void showNewData() {
         int mode = atoi(strtok(NULL, ":"));
 
         if (motor == 'P'){
-          // activate pump
+          digitalWrite(pumpPin, mode);
+          Serial.print("PUMPING");
+          Serial.println(mode);
         } else {
-          move_stepper(motor, (mode > 0), abs(mode), 3000);
+          move_stepper(motor, (mode > 0), abs(mode), 1000);
         }
         
         newData = false;
