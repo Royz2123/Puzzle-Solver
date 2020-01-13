@@ -136,6 +136,7 @@ void showNewData() {
 
         char motor = atoi(pt);
         int mode = atoi(strtok(NULL, ":"));
+        int motor_speed = atoi(strtok(NULL, ":"));
 
         if (motor == 'P'){
           digitalWrite(pumpPin, mode);
@@ -146,7 +147,7 @@ void showNewData() {
           Serial.print("LIGHTING");
           Serial.println(mode);
         }else {
-          move_stepper(motor, (mode > 0), abs(mode), 1000);
+          move_stepper(motor, (mode > 0), abs(mode), motor_speed);
         }
         
         newData = false;

@@ -87,16 +87,17 @@ class Piece(object):
         # dervs[abs(dervs) > 2] = 0
 
         #
-        peaks, _ = find_peaks(dists, prominence=(10), threshold=(0, 2))
+        peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
         plt.plot(angles[peaks], dists[peaks], "x")
-        # plt.plot(angles, dists)
-        # plt.show()
+        plt.plot(angles, dists)
+        plt.show()
         plt.clf()
 
         possible_corners = list(zip(peaks, angles[peaks]))
         pairs = list(itertools.combinations(possible_corners, 2))
         pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
         top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:3]
+        print(top_pairs)
 
         corners2 = list(set(
             [pair[0] for pair in top_pairs]

@@ -7,15 +7,15 @@ sleep(2)
 print(ard.readline(ard.inWaiting()))
 
 
-
-def send_command(motor, mode):
-  cmnd = "%d:%d\n" % (ord(motor[0]), mode)
+def send_command(motor, mode, speed=1000):
+  cmnd = "%d:%d:%d\n" % (ord(motor[0]), mode, speed)
 
   print(ard.readline(ard.inWaiting()))
   print(ard.readline(ard.inWaiting()))
 
   ard.write(cmnd.encode())
 
+  sleep(2)
 
 # def take_step(motor="X", delay=0.0001):
 #   send_command(MOTOR_MAP[motor]["step"], 1)
@@ -39,19 +39,20 @@ def send_command(motor, mode):
 #   print(data)
 
 
-while True:
-  send_command("P", 0)
+sleep(2)
 
-  sleep(2)
+send_command("Z", -200)
+send_command("P", 0)
+sleep(1)
+send_command("Z", 200)
 
-  send_command("P", 1)
+send_command("X", 1500)
+send_command("Y", -1000)
 
-  sleep(0.8)
+send_command("Z", -400)
+send_command("P", 1)
+sleep(1)
+send_command("Z", 270)
 
-  send_command("L", 0)
-
-  sleep(2)
-
-  send_command("L", 1)
-
-  sleep(0.8)
+send_command("X", -1500)
+send_command("Y", 1000)
