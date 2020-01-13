@@ -29,6 +29,9 @@ class Piece:
         self._edge_images = self.create_shape_vector()
         self._color_vectors = self.create_color_vector()
 
+        self._puzzle_edges = self.puzzle_edges()
+        print(self._puzzle_edges)
+
 
     def find_centroid(self):
         # connected compnents
@@ -44,7 +47,7 @@ class Piece:
         return centroid
 
     def display_piece(self):
-        edges = np.concatenate(tuple(self._edge_images), axis=0)
+        edges = np.concatenate(tuple([img*255 for img in self._edge_images]), axis=0)
         general = np.concatenate((
             self._display,
             self._above,
@@ -157,12 +160,12 @@ class Piece:
 
         return divided_edges
 
-
     def create_color_vector(self):
         # values = self._above[self._color_edges]
-        for edge_class in self._color_edges:
-            plt.plot(edge_class)
-            plt.show()
+        # for edge_class in self._color_edges:
+        #     plt.plot(edge_class)
+        #     plt.show()
+        pass
 
     def create_shape_vector(self):
         # for index, angle in enumerate(self._corner_angles):
@@ -207,47 +210,83 @@ class Piece:
             # erode back
             kernel = np.ones((4, 4), np.uint8)
             im_floodfill = cv2.erode(im_floodfill, kernel)
+            im_floodfill[im_floodfill > 1] = 1
 
             edge_images.append(im_floodfill.astype(np.uint8))
 
         return edge_images
 
-    def compare_shape(self, other):
+    def puzzle_edges(self):
+        puzzle_edges = []
+
+        for edge_image in self._edge_images:
+            frame = np.zeros(edge_image.shape, np.uint8)
+            frame[:, :edge_image.shape[1] // 2] = 1
+
+            xored = np.bitwise_xor(frame, edge_image)
+            score = np.sum(xored)
+            puzzle_edges.append(score < 500)
+
+        return puzzle_edges
+
+    def is_puzzle_edge(self):
+        return sum(self._puzzle_edges) == 1
+
+    def is_puzzle_corner(self):
+        return sum(self._puzzle_edges) > 1
+
+    def get_puzzle_edges_indices(self):
+        return [idx for idx in range(len(self._puzzle_edges)) if self._puzzle_edges[idx]]
+
+    def get_puzzle_regs_indices(self):
+        return [idx for idx in range(len(self._puzzle_edges)) if not self._puzzle_edges[idx]]
+
+    def compare_edges(self, idx1, other, idx2):
+        edge_image_1 = self._edge_images[idx1]
+        edge_image_2 = other._edge_images[idx2]
+
+        new_shape = (max(edge_image_1.shape[0], edge_image_2.shape[0]), edge_image_1.shape[1])
+        frame = np.zeros(new_shape, np.uint8)
+        frame[:, :edge_image_1.shape[1] // 2] = 1
+
+        frame1 = frame
+        frame2 = frame.copy()
+
+        frame1[:edge_image_1.shape[0], :edge_image_1.shape[1]] = edge_image_1
+        frame2[:edge_image_2.shape[0], :edge_image_2.shape[1]] = edge_image_2
+
+        # flip because we check matching
+        frame2 = cv2.flip(frame2, 1)
+        frame2 = cv2.flip(frame2, 0)
+
+        cv2.imshow("1_" + str(idx1), frame1 * 255)
+        cv2.imshow("2_" + str(idx2), frame2 * 255)
+
+        xored = cv2.bitwise_xor(frame1, frame2)
+        xored = 1 - xored
+        score = np.sum(xored)
+
+        # xored = (frame1 + frame2) * 100
+        cv2.imshow("XOR", xored * 255)
+        cv2.waitKey(0)
+
+        return score
+
+    def compare_piece_edge(self, idx1, other):
+        scores = []
+        for idx2, edge_image_2 in enumerate(other._edge_images):
+            if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
+                scores.append((idx2, self.compare_edges(idx1, other, idx2)))
+        scores.sort(key=lambda x: x[1])
+        return scores
+
+    def compare_piece(self, other):
         scores = []
         for idx1, edge_image_1 in enumerate(self._edge_images):
-            for idx2, edge_image_2 in enumerate(other._edge_images):
-                edge_image_1[edge_image_1 > 1] = 1
-                edge_image_2[edge_image_2 > 1] = 1
-
-                new_shape = (max(edge_image_1.shape[0], edge_image_2.shape[0]), edge_image_1.shape[1])
-                frame = np.zeros(new_shape, np.uint8)
-                frame[:, :edge_image_1.shape[1] // 2] = 1
-
-                frame1 = frame
-                frame2 = frame.copy()
-
-                frame1[:edge_image_1.shape[0], :edge_image_1.shape[1]] = edge_image_1
-                frame2[:edge_image_2.shape[0], :edge_image_2.shape[1]] = edge_image_2
-
-                # flip because we check matching
-                frame2 = cv2.flip(frame2, 1)
-                frame2 = cv2.flip(frame2, 0)
-
-                # cv2.imshow("1_" + str(idx1), frame1 * 255)
-                # cv2.imshow("2_" + str(idx2), frame2 * 255)
-
-                xored = cv2.bitwise_xor(frame1, frame2)
-                xored = cv2.bitwise_not(xored)
-                score = np.sum(xored)
-
-                # xored = (frame1 + frame2) * 100
-                # cv2.imshow("XOR", xored)
-                # cv2.waitKey(0)
-
-                scores.append((idx1, idx2, score))
-
+            curr_scores = self.compare_piece_edge(idx1, other)
+            scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
-        print(scores[:2])
+        return scores
 
 
 
