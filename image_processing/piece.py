@@ -10,13 +10,18 @@ from constants import *
 import test
 import util
 
-class Piece:
 
+class Piece(object):
     def __init__(self, above, below, index):
+
+        print(index)
+
         self._above = above
         self._below = below
         self._index = index
         self._name = "Piece: %d" % index
+        self.remove_non_piece()
+
         self._display = above.copy()
 
         self._centroid = self.find_centroid()
@@ -33,6 +38,16 @@ class Piece:
         print(self._puzzle_edges)
 
 
+    def remove_non_piece(self):
+        contours, _ = cv2.findContours(self._below, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        max_c = max(contours, key = cv2.contourArea)
+
+        for c in contours:
+            if len(c) < len(max_c):
+                cv2.drawContours(self._above, [c], -1, (0, 0, 0), thickness=cv2.FILLED)
+                cv2.drawContours(self._below, [c], -1, 0, thickness=cv2.FILLED)
+
+
     def find_centroid(self):
         # connected compnents
         nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(self._below)
@@ -47,14 +62,14 @@ class Piece:
         return centroid
 
     def display_piece(self):
-        edges = np.concatenate(tuple([img*255 for img in self._edge_images]), axis=0)
+        # edges = np.concatenate(tuple([img*255 for img in self._edge_images]), axis=0)
         general = np.concatenate((
             self._display,
             self._above,
             cv2.cvtColor(self._below, cv2.COLOR_GRAY2RGB)
         ))
 
-        cv2.imshow(self._name + "_edges", edges)
+        # cv2.imshow(self._name + "_edges", edges)
         cv2.imshow(self._name, general)
 
     def find_corners(self):
@@ -97,7 +112,6 @@ class Piece:
         corners2.sort(key=lambda x:
             math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
         )
-
 
         for i in corners1:
             x, y = i.ravel()

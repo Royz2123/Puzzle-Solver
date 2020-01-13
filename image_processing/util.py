@@ -29,13 +29,16 @@ def dist_from_line(next_corner, point):
     return neumon / denom
 
 
-
 def relevant_section(img):
-    return img[-900:-200,-650:-200]
+    # tmp = img[-900:-200,-650:-200]
+    tmp = img[70:-100,300:-230]
+    cv2.imshow("tmp", cv2.resize(tmp, dsize=(500, 500), interpolation=cv2.INTER_CUBIC))
+    cv2.waitKey(0)
+    return tmp
 
 
 def output(name, img):
-    cv2.imshow(name, img)
+    cv2.imshow(name, cv2.resize(img, dsize=(500, 500), interpolation=cv2.INTER_CUBIC))
     cv2.imwrite(RESULTS_BASE + name + ".png", img)
 
 

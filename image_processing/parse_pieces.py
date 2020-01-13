@@ -3,15 +3,13 @@ import cv2
 
 from constants import *
 import piece
-
+import util
 
 def create_mask(below):
     below[below >= THRESH] = 0
     below[below >= 1] = 255
 
-    # output('not morphed', below)
-
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     below = cv2.morphologyEx(below, cv2.MORPH_OPEN, kernel)
     below = cv2.morphologyEx(below, cv2.MORPH_CLOSE, kernel)
 
@@ -51,11 +49,14 @@ def recog_pieces(above, below, binary):
             cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
             pieces.append(piece.Piece(
-                above[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN],
-                below[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN],
+                above[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN].copy(),
+                below[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN].copy(),
                 index
             ))
             pieces[index].display_piece()
             index += 1
+
+    util.output("test", recoged)
+    cv2.waitKey(0)
 
     return recoged, pieces

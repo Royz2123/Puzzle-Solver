@@ -16,6 +16,9 @@ def get_pieces(test=False):
     below, binary = parse_pieces.create_mask(below)
     masked = parse_pieces.mask_rgb(above, binary)
 
+    util.output("below", below)
+    cv2.waitKey(0)
+
     not_masked = parse_pieces.show_diffs(above, binary)
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 

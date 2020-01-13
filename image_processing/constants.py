@@ -1,6 +1,6 @@
 BASE = "./test_images/"
-ABOVE = BASE + "above.jpeg"
-BELOW = BASE + "below.jpeg"
+ABOVE = BASE + "test_above.jpeg"
+BELOW = BASE + "test_below.jpeg"
 
 RESULTS_BASE = "./results/"
 
