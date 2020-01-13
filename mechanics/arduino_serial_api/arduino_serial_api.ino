@@ -2,7 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define pumpPin 0
+#define pumpPin A5
+#define lightPin A4
+
 #define dirPinTheta 2
 #define stepPinTheta 3
 #define dirPinZ 4
@@ -29,6 +31,8 @@ void setup() {
     for(int i = 0; i < 14; i++) {
       pinMode(i, OUTPUT);
     }
+    pinMode(pumpPin, OUTPUT);
+    pinMode(lightPin, OUTPUT);
 
     // disable all other devices
     digitalWrite(enablePinX, HIGH);
@@ -137,7 +141,11 @@ void showNewData() {
           digitalWrite(pumpPin, mode);
           Serial.print("PUMPING");
           Serial.println(mode);
-        } else {
+        } else if (motor == 'L'){
+          digitalWrite(lightPin, mode);
+          Serial.print("LIGHTING");
+          Serial.println(mode);
+        }else {
           move_stepper(motor, (mode > 0), abs(mode), 1000);
         }
         

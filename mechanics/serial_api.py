@@ -40,18 +40,18 @@ def send_command(motor, mode):
 
 
 while True:
-  send_command("Y", -500)
+  send_command("P", 0)
+
+  sleep(2)
+
+  send_command("P", 1)
 
   sleep(0.8)
 
-  send_command("Z", -200)
+  send_command("L", 0)
 
-  sleep(0.8)
+  sleep(2)
 
-  send_command("Y", 500)
-
-  sleep(0.8)
-
-  send_command("Z", 200)
+  send_command("L", 1)
 
   sleep(0.8)
