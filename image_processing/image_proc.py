@@ -1,10 +1,10 @@
 import numpy as np
 import cv2
 
-import util
-from constants import *
-import piece
-import parse_pieces
+import image_processing.util as util
+from image_processing.constants import *
+import image_processing.piece as piece
+import image_processing.parse_pieces as parse_pieces
 
 def get_pieces(test=False):
     if test:
@@ -17,7 +17,7 @@ def get_pieces(test=False):
     masked = parse_pieces.mask_rgb(above, binary)
 
     util.output("below", below)
-    cv2.waitKey(0)
+    # cv2.waitKey(0)
 
     not_masked = parse_pieces.show_diffs(above, binary)
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
@@ -37,5 +37,5 @@ def get_pieces(test=False):
 if __name__ == "__main__":
     get_pieces(test=True)
 
-    k = cv2.waitKey(0)
+    # k = cv2.waitKey(0)
     cv2.destroyAllWindows()

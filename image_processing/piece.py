@@ -6,9 +6,8 @@ from scipy.signal import find_peaks
 from scipy import ndimage
 import itertools
 
-from constants import *
-import test
-import util
+import image_processing.util as util
+from image_processing.constants import *
 
 
 class Piece(object):
@@ -32,10 +31,18 @@ class Piece(object):
         self._color_vectors = self.create_color_vector()
 
         self._puzzle_edges = self.puzzle_edges()
+        print(self._puzzle_edges)
+
+    def __repr__(self):
+        return self._name
+
+    def get_rotated_piece(self, edge):
+        theta = self._corner_angles[edge] + 3 * np.pi / 4
+        return ndimage.rotate(self._display, theta * 180 / np.pi)
 
     def remove_non_piece(self):
         contours, _ = cv2.findContours(self._below, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        max_c = max(contours, key = cv2.contourArea)
+        max_c = max(contours, key=cv2.contourArea)
 
         for c in contours:
             if len(c) < len(max_c):
@@ -52,6 +59,7 @@ class Piece(object):
         index = 1 # first index will be for black part, second for actual piece
         centroid = tuple(list(centroids[index].astype(int)))
         cv2.circle(self._display, centroid, 3, (0, 0, 255), 7)
+        cv2.putText(self._display, str(self._index), centroid, cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
 
         return centroid
 
@@ -65,6 +73,9 @@ class Piece(object):
 
         cv2.imshow(self._name + "_edges", edges)
         cv2.imshow(self._name, general)
+
+        cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
+        cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + " - edges.png", edges)
 
     def find_corners(self):
         # Method 1
@@ -95,7 +106,9 @@ class Piece(object):
         peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
         plt.plot(angles[peaks], dists[peaks], "x")
         plt.plot(angles, dists)
-        plt.savefig(".\\results\\graphs\\corner_" + str(self._index))
+        # plt.plot(dists[peaks], "x")
+        # plt.plot(dists)
+        plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
         plt.clf()
 
         angles = np.array([angle - 2*np.pi for angle in angles])
@@ -135,8 +148,7 @@ class Piece(object):
 
         print(self._name, chains)
         print(self._name, max_chain)
-        print()
-        cv2.waitKey()
+        # cv2.waitKey()
 
         if len(max_chain) == 3:
             top_pairs = max_chain
@@ -280,8 +292,11 @@ class Piece(object):
             frame[:, :edge_image.shape[1] // 2] = 1
 
             xored = np.bitwise_xor(frame, edge_image)
+            # cv2.imshow("yo", xored)
+            # cv2.waitKey(0)
+
             score = np.sum(xored)
-            puzzle_edges.append(score < 500)
+            puzzle_edges.append(score < 600)
 
         return puzzle_edges
 
@@ -315,16 +330,16 @@ class Piece(object):
         frame2 = cv2.flip(frame2, 1)
         frame2 = cv2.flip(frame2, 0)
 
-        cv2.imshow("1_" + str(idx1), frame1 * 255)
-        cv2.imshow("2_" + str(idx2), frame2 * 255)
+        # cv2.imshow("1_" + str(idx1), frame1 * 255)
+        # cv2.imshow("2_" + str(idx2), frame2 * 255)
 
         xored = cv2.bitwise_xor(frame1, frame2)
         xored = 1 - xored
         score = np.sum(xored)
 
         # xored = (frame1 + frame2) * 100
-        cv2.imshow("XOR", xored * 255)
-        cv2.waitKey(0)
+        # cv2.imshow("XOR", xored * 255)
+        # cv2.waitKey(0)
 
         return score
 
