@@ -86,23 +86,68 @@ class Piece(object):
         # dervs = np.gradient(dists)
         # dervs[abs(dervs) > 2] = 0
 
-        #
+        length = len(dists)
+        points = np.concatenate((points, points[length//16:]))
+        dists = np.lib.pad(dists, (0, length // 16), 'wrap')
+        angles = np.lib.pad(angles, (0, length // 16), 'wrap')
+        angles[length:] += 2 * np.pi
+
         peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
         plt.plot(angles[peaks], dists[peaks], "x")
         plt.plot(angles, dists)
-        plt.show()
+        plt.savefig(".\\results\\graphs\\corner_" + str(self._index))
         plt.clf()
 
+        angles = np.array([angle - 2*np.pi for angle in angles])
         possible_corners = list(zip(peaks, angles[peaks]))
         pairs = list(itertools.combinations(possible_corners, 2))
         pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
-        top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:3]
-        print(top_pairs)
+
+        # remove pairs that are the same
+        equivalents = [pair for pair in pairs if pair[2] == 2*np.pi]
+        to_remove = [pair[1] for pair in equivalents]
+        pairs = [pair for pair in pairs if pair[1] not in to_remove]
+
+        top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:5]
+        top_pairs = [x for x in top_pairs if abs(x[2] - np.pi/2) < 0.3 * (np.pi / 2)]
+        top_pairs = sorted(top_pairs, key=lambda x: x[0])
+
+        # try to find chain, otherwise remove
+        chains = []
+        candidates = top_pairs.copy()
+        while len(candidates) > 0:
+            curr_pair = candidates[0]
+            candidates.remove(curr_pair)
+            chain = [curr_pair]
+
+            while True:
+                nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
+                if len(nbrs) == 0:
+                    chains.append(chain)
+                    break
+                else:
+                    curr_pair = nbrs[0]
+                    chain.append(curr_pair)
+                    candidates.remove(curr_pair)
+
+
+        max_chain = max(chains, key=len)
+
+        print(self._name, chains)
+        print(self._name, max_chain)
+        print()
+        cv2.waitKey()
+
+        if len(max_chain) == 3:
+            top_pairs = max_chain
+        else:
+            print("Prbably problem")
+            top_pairs = top_pairs[:3]
 
         corners2 = list(set(
             [pair[0] for pair in top_pairs]
             + [pair[1] for pair in top_pairs]
-        ))
+        ))[:4]
         corners2 = points[corners2].tolist()
         corners2.sort(key=lambda x:
             math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
@@ -135,6 +180,8 @@ class Piece(object):
         real_edges_img = cv2.Canny(self._below, 100, 255)
         real_indices = np.where(real_edges_img != [0])
         real_edges = np.array(list(zip(real_indices[1], real_indices[0])))
+
+
 
         self._display[color_indices] = [0, 255, 255]
         self._display[real_indices] = [255, 255, 0]
