@@ -3,7 +3,7 @@ from time import sleep
 
 # Enter your COM port in the below line
 try:
-    ard = serial.Serial('COM7', 9600)
+    ard = serial.Serial('COM3', 9600)
     sleep(2)
     print(ard.readline(ard.inWaiting()))
 except:
@@ -17,7 +17,7 @@ def send_command(motor, mode, speed=1000):
     print(ard.readline(ard.inWaiting()))
 
     ard.write(cmnd.encode())
-    sleep(1)
+    sleep(0.5)
 
 
 def get_log():

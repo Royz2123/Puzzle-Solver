@@ -7,6 +7,8 @@ import image_processing.piece as piece
 
 
 def create_mask(below):
+    print(below.shape)
+
     below[below >= THRESH] = 0
     below[below >= 1] = 255
 
@@ -21,6 +23,7 @@ def create_mask(below):
 
 
 def mask_rgb(above, binary):
+    print(binary.shape)
     mask = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
     masked = above * mask
 
@@ -58,6 +61,6 @@ def recog_pieces(above, below, binary):
             index += 1
 
     util.output("test", recoged)
-    # cv2.waitKey(0)
+    cv2.waitKey(0)
 
     return recoged, pieces

@@ -5,7 +5,7 @@ BELOW = BASE + "below6.jpeg"
 RESULTS_BASE = "./image_processing/results/"
 PIECES_BASE = "./image_processing/pieces/"
 
-THRESH = 75
+THRESH = 220
 CNT_THRESH = 50
 
 PIECE_MARGIN = 10

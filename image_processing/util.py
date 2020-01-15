@@ -37,9 +37,9 @@ def relevant_section(img):
     # tmp = img[70:-100,300:-230]
 
     #for 4 pieces
-    tmp = img[100:-100,300:-230]
-
-    cv2.imshow("tmp", cv2.resize(tmp, dsize=(500, 500), interpolation=cv2.INTER_CUBIC))
+    # tmp = img[100:-100,100:-230]
+    tmp = img[30:-300,780:-1070]
+    cv2.imshow("tmp",cv2.resize(tmp, None, fx=0.2, fy=0.2))
     # cv2.waitKey(0)
     return tmp
 

@@ -9,7 +9,7 @@ D=np.array([[-0.12271606120274124], [0.2074119120947846], [-0.4160633486018614],
 
 # Create a VideoCapture object and read from input file
 try:
-    STILL_CAP = cv2.VideoCapture(1)
+    STILL_CAP = cv2.VideoCapture(0)
     STILL_CAP.set(cv2.CAP_PROP_FRAME_WIDTH, DIM[0])
     STILL_CAP.set(cv2.CAP_PROP_FRAME_HEIGHT, DIM[1])
 

@@ -8,13 +8,24 @@ import image_processing.parse_pieces as parse_pieces
 
 
 def get_pieces(above, below):
+    below = cv2.cvtColor(below, cv2.COLOR_BGR2GRAY)
+    util.output("below", below)
+    cv2.waitKey(0)
+
     below, binary = parse_pieces.create_mask(below)
+
+
+
+    util.output("below", binary*255)
+    cv2.waitKey(0)
     masked = parse_pieces.mask_rgb(above, binary)
 
     util.output("below", below)
-    # cv2.waitKey(0)
+    cv2.waitKey(0)
 
     not_masked = parse_pieces.show_diffs(above, binary)
+
+    print("here")
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 
     pieces[0].compare_piece(pieces[1])
