@@ -191,9 +191,9 @@ class Piece(object):
 
         real_edges_img = cv2.Canny(self._below, 100, 255)
         real_indices = np.where(real_edges_img != [0])
+
+        print(real_indices)
         real_edges = np.array(list(zip(real_indices[1], real_indices[0])))
-
-
 
         self._display[color_indices] = [0, 255, 255]
         self._display[real_indices] = [255, 255, 0]
@@ -229,11 +229,19 @@ class Piece(object):
         return divided_edges
 
     def create_color_vector(self):
-        # values = self._above[self._color_edges]
-        # for edge_class in self._color_edges:
-        #     plt.plot(edge_class)
-        #     plt.show()
-        pass
+        # sort edges by curve
+        for color_edge in self._color_edges:
+            color_edges_curve = self.make_curve(np.array(color_edge))
+
+            x_s = [edge[0] for edge in color_edges_curve]
+            y_s = [edge[1] for edge in color_edges_curve]
+            indices = (x_s, y_s)
+
+            values = self._above[indices]
+            cv2.imshow("colors", self._above)
+            cv2.waitKey(0)
+        print(values)
+
 
     def create_shape_vector(self):
         # for index, angle in enumerate(self._corner_angles):
@@ -358,6 +366,33 @@ class Piece(object):
             scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
         return scores
+
+    def make_curve(self, cord_array, radius=2):
+        xmax = np.max(cord_array[:, 0])
+        ymax = np.max(cord_array[:, 1])
+        cord_matrix = np.zeros((xmax + 1, ymax + 1))
+
+        for cord in cord_array:
+            cord_matrix[cord[0], cord[1]] = 1
+        cord = cord_array[0]
+        cnt = 0
+        results = np.zeros(cord_array.shape)
+        while cnt < len(cord_array):
+            cord_matrix[cord[0], cord[1]] = 0
+            min = 10000
+            mincord = None
+            for i in range(cord[0] - radius, cord[0] + radius + 1):
+                for j in range(cord[1] - radius, cord[1] + radius + 1):
+                    if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
+                        if cord_matrix[i, j] == 1:
+                            diq = np.linalg.norm(cord - np.array([i, j]))
+                            if diq < min:
+                                min = diq
+                                mincord = np.array([i, j])
+            results[cnt, :] = cord
+            cord = mincord
+            cnt += 1
+        return results.astype(dtype=np.int)
 
 
 

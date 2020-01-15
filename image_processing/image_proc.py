@@ -6,13 +6,8 @@ from image_processing.constants import *
 import image_processing.piece as piece
 import image_processing.parse_pieces as parse_pieces
 
-def get_pieces(test=False):
-    if test:
-        above, below = util.get_test_images()
-    else:
-        # TODO: Take image
-        above, below = (None, None)
 
+def get_pieces(above, below):
     below, binary = parse_pieces.create_mask(below)
     masked = parse_pieces.mask_rgb(above, binary)
 
