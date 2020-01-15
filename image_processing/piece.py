@@ -21,6 +21,7 @@ class Piece(object):
         self._display = above.copy()
 
         self._centroid = self.find_centroid()
+        self._theta = 0
         self._raw_color_edges, self._raw_real_edges = self.find_edges()
 
         self._corners, self._corner_angles = self.find_corners()
@@ -46,10 +47,15 @@ class Piece(object):
         cv2.imshow("colors", np.concatenate((img1, img2), axis=0))
         cv2.waitKey(0)
 
+    def get_theta(self):
+        return self._theta
+
+    def get_centroid(self):
+        return self._centroid
 
     def get_rotated_piece(self, edge):
-        theta = self._corner_angles[edge] + 3 * np.pi / 4
-        return ndimage.rotate(self._display, theta * 180 / np.pi)
+        self._theta = self._corner_angles[edge] + 3 * np.pi / 4
+        return ndimage.rotate(self._display, self._theta * 180 / np.pi)
 
     def remove_non_piece(self):
         contours, _ = cv2.findContours(self._below, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -403,7 +409,7 @@ class Piece(object):
                 print(color_score)
 
                 # TODO: needs to be weighted
-                total_score = shape_score + color_score
+                total_score = shape_score # + color_score
                 scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores

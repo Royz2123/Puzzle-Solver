@@ -50,7 +50,8 @@ def main():
     puzzle_obj.display()
 
     # Execute puzzle
-
+    command_list = puzzle_obj.create_command_list()
+    # mechanics_api.
 
 if __name__ == "__main__":
     main()

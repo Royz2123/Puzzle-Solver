@@ -4,6 +4,8 @@ import numpy as np
 import copy
 
 
+FIRST_POS = (2000, 2000)
+
 class Puzzle(object):
     def __init__(self, pieces):
         self._pieces = pieces
@@ -37,7 +39,7 @@ class Puzzle(object):
     def display(self):
         mat = []
         for row in self._final_puzzle:
-            row = [cv2.resize(piece.get_rotated_piece(0).copy(), (200, 200)) for piece, edge in row]
+            row = [cv2.resize(piece.get_rotated_piece(edge).copy(), (200, 200)) for piece, edge in row]
             row_pic = np.concatenate(tuple(row))
             mat.append(row_pic)
         img = np.concatenate(tuple(mat), axis=1)
@@ -47,7 +49,7 @@ class Puzzle(object):
 
     # TODO: consider pieces from other rows
     def complete_row(self, first_piece, first_edge, curr_pieces, border, row_length=None):
-        row = [(first_piece, (-first_edge) % 4)]
+        row = [(first_piece, (first_edge + 2) % 4)]
         curr_pieces.remove(first_piece)
 
         curr_edge = first_edge
@@ -65,7 +67,7 @@ class Puzzle(object):
                 curr_edge,
                 supply
             )
-            row.append((curr_piece, curr_edge))
+            row.append((curr_piece, connector_edge))
             curr_pieces.remove(curr_piece)
 
             # have we finished?
@@ -104,14 +106,16 @@ class Puzzle(object):
                     row_connecting_edge,
                     [p for p in curr_pieces if p.is_puzzle_edge()]
                 )
+                row_puzzle_edge = row_first_piece.get_puzzle_edges_indices()[0]
+
             else:
                 row_first_piece, row_connecting_edge = self.find_closest_piece_edge(
                     row_first_piece,
                     row_connecting_edge,
                     [p for p in curr_pieces if p.is_puzzle_corner()]
                 )
+                row_puzzle_edge = (row_connecting_edge - 1) % 4
 
-            row_puzzle_edge = row_first_piece.get_puzzle_edges_indices()[0]
             row_puzzle_edge = (row_puzzle_edge + 2) % 4
             row_connecting_edge = (row_connecting_edge + 2) % 4
 
@@ -121,6 +125,18 @@ class Puzzle(object):
 
             print("First piece", row_first_piece)
 
+        # flip puzzle if wrong
+        if (first_edges[1] - first_edges[0]) % 4 == 1:
+            self._final_puzzle = self._final_puzzle[::-1]
 
 
-
+    def create_command_list(self):
+        flattened_puzzle = [piece for row in self._final_puzzle for piece in row]
+        commands = [
+            (
+                piece.get_centroid()[0],
+                piece.get_centroid()[1],
+                piece.get_theta(),
+            ) for piece in flattened_puzzle
+        ]
+        return commands
