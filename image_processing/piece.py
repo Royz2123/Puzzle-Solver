@@ -93,7 +93,7 @@ class Piece(object):
             cv2.cvtColor(self._below, cv2.COLOR_GRAY2RGB)
         ))
 
-        cv2.imshow(self._name + "_edges", edges)
+        cv2.imshow(self._name + "_edges", cv2.resize(edges, dsize=(100, 400)))
         cv2.imshow(self._name, general)
 
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
@@ -257,10 +257,10 @@ class Piece(object):
             color_vectors.append(values)
 
             # checks that goldners and prosaks code works
-            # for i in range(len(x_s)):
-            #     cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
-            # cv2.imshow("colors", self._above)
-            # cv2.waitKey(0)
+            for i in range(len(x_s)):
+                cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
+            cv2.imshow("colors", self._above)
+            cv2.waitKey(0)
             # self.display_color_edge(values)
 
         return color_vectors
@@ -287,7 +287,6 @@ class Piece(object):
             # middle = int(max(max(normed_dists), abs(min(normed_dists))))
             middle = 100
             shape = (int(max(normed_xs)) + 1, 2*middle + 1)
-            print(shape)
 
             mat = np.zeros(shape)
 
@@ -332,7 +331,7 @@ class Piece(object):
             # cv2.waitKey(0)
 
             score = np.sum(xored)
-            puzzle_edges.append(score < 600)
+            puzzle_edges.append(score < 1000)
 
         return puzzle_edges
 
@@ -413,7 +412,7 @@ class Piece(object):
         for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
                 shape_score = self.compare_edges_shape(idx1, other, idx2)
-                color_score = self.compare_edges_color(idx1, other, idx2)
+                # color_score = self.compare_edges_color(idx1, other, idx2)
                 length_score = self.compare_edges_length(idx1, other, idx2)
 
                 # print(color_score)
@@ -433,28 +432,37 @@ class Piece(object):
         scores.sort(key=lambda x: x[2])
         return scores
 
-    def make_curve(self, cord_array, radius=2):
+    def make_curve(self, cord_array):
         xmax = np.max(cord_array[:, 0])
         ymax = np.max(cord_array[:, 1])
         cord_matrix = np.zeros((xmax + 1, ymax + 1))
 
         for cord in cord_array:
             cord_matrix[cord[0], cord[1]] = 1
+
         cord = cord_array[0]
         cnt = 0
         results = np.zeros(cord_array.shape)
-        while cnt < len(cord_array):
+        while cnt + 1 < len(cord_array):
             cord_matrix[cord[0], cord[1]] = 0
             min = 10000
             mincord = None
-            for i in range(cord[0] - radius, cord[0] + radius + 1):
-                for j in range(cord[1] - radius, cord[1] + radius + 1):
-                    if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
-                        if cord_matrix[i, j] == 1:
-                            diq = np.linalg.norm(cord - np.array([i, j]))
-                            if diq < min:
-                                min = diq
-                                mincord = np.array([i, j])
+
+            radius = 1
+            while True:
+                for i in range(cord[0] - radius, cord[0] + radius + 1):
+                    for j in range(cord[1] - radius, cord[1] + radius + 1):
+                        if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
+                            if cord_matrix[i, j] == 1:
+                                diq = np.linalg.norm(cord - np.array([i, j]))
+                                if diq < min:
+                                    min = diq
+                                    mincord = np.array([i, j])
+
+                if mincord is None:
+                    radius *= 2
+                else:
+                    break
             results[cnt, :] = cord
             cord = mincord
             cnt += 1

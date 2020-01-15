@@ -135,14 +135,16 @@ class Puzzle(object):
         if (first_edges[1] - first_edges[0]) % 4 == 1:
             self._final_puzzle = self._final_puzzle[::-1]
 
-
     def create_command_list(self):
-        flattened_puzzle = [piece for row in self._final_puzzle for piece in row]
-        commands = [
-            (
-                piece.get_centroid()[0],
-                piece.get_centroid()[1],
-                piece.get_theta(),
-            ) for piece, edge in flattened_puzzle
-        ]
+        commands = []
+
+        for ridx, row in enumerate(self._final_puzzle):
+            for cidx, piece in enumerate(row):
+                commands.append((
+                    piece.get_centroid()[0],
+                    piece.get_centroid()[1],
+                    1000 + ridx * 500,
+                    cidx * 500,
+                    piece.get_theta(),
+                ))
         return commands
