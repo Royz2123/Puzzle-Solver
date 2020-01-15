@@ -36,6 +36,17 @@ class Piece(object):
     def __repr__(self):
         return self._name
 
+    def display_color_edge(self, color_vector):
+        cv2.imshow("colors", np.repeat(np.array([color_vector]), 20, axis=0))
+        cv2.waitKey(0)
+
+    def display_color_comparison(self, color_vector1, color_vector2):
+        img1 = np.repeat(np.array([color_vector1]), 20, axis=0)
+        img2 = np.repeat(np.array([color_vector2]), 20, axis=0)
+        cv2.imshow("colors", np.concatenate((img1, img2), axis=0))
+        cv2.waitKey(0)
+
+
     def get_rotated_piece(self, edge):
         theta = self._corner_angles[edge] + 3 * np.pi / 4
         return ndimage.rotate(self._display, theta * 180 / np.pi)
@@ -191,8 +202,6 @@ class Piece(object):
 
         real_edges_img = cv2.Canny(self._below, 100, 255)
         real_indices = np.where(real_edges_img != [0])
-
-        print(real_indices)
         real_edges = np.array(list(zip(real_indices[1], real_indices[0])))
 
         self._display[color_indices] = [0, 255, 255]
@@ -229,18 +238,25 @@ class Piece(object):
         return divided_edges
 
     def create_color_vector(self):
+        color_vectors = []
+
         # sort edges by curve
         for color_edge in self._color_edges:
             color_edges_curve = self.make_curve(np.array(color_edge))
 
-            x_s = [edge[0] for edge in color_edges_curve]
-            y_s = [edge[1] for edge in color_edges_curve]
-            indices = (x_s, y_s)
+            x_s = [edge[1] for edge in color_edges_curve]
+            y_s = [edge[0] for edge in color_edges_curve]
+            values = self._above[(x_s, y_s)]
+            color_vectors.append(values)
 
-            values = self._above[indices]
-            cv2.imshow("colors", self._above)
-            cv2.waitKey(0)
-        print(values)
+            # checks that goldners and prosaks code works
+            # for i in range(len(x_s)):
+            #     cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
+            # cv2.imshow("colors", self._above)
+            # cv2.waitKey(0)
+            # self.display_color_edge(values)
+
+        return color_vectors
 
 
     def create_shape_vector(self):
@@ -320,7 +336,10 @@ class Piece(object):
     def get_puzzle_regs_indices(self):
         return [idx for idx in range(len(self._puzzle_edges)) if not self._puzzle_edges[idx]]
 
-    def compare_edges(self, idx1, other, idx2):
+
+    # COMPARATORS
+
+    def compare_edges_shape(self, idx1, other, idx2):
         edge_image_1 = self._edge_images[idx1]
         edge_image_2 = other._edge_images[idx2]
 
@@ -351,18 +370,48 @@ class Piece(object):
 
         return score
 
-    def compare_piece_edge(self, idx1, other):
+    def compare_edges_color(self, idx1, other, idx2, width=20):
+        color_vector_1 = self._color_vectors[idx1]
+        color_vector_2 = other._color_vectors[idx2]
+
+        max_len = max(color_vector_1.shape[0], color_vector_2.shape[0])
+        color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
+        color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
+
+        # flip color vector 2
+        color_vector_2 = cv2.flip(color_vector_2, 0)
+
+        # self.display_color_comparison(color_vector_1, color_vector_2)
+
+        results = np.zeros((width, max_len, 3))
+        np.roll(color_vector_2, -2)
+
+        for i in range(width):
+            sub = np.subtract(color_vector_1, color_vector_2)
+            results[i] = np.abs(sub)
+            color_vector_2 = np.roll(color_vector_2, 1)
+
+        return np.average(np.amin(np.array(results), axis=0))
+
+    def compare_edge_to_piece(self, idx1, other):
         scores = []
-        for idx2, edge_image_2 in enumerate(other._edge_images):
+        for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
-                scores.append((idx2, self.compare_edges(idx1, other, idx2)))
+                shape_score = self.compare_edges_shape(idx1, other, idx2)
+                color_score = self.compare_edges_color(idx1, other, idx2)
+
+                print(color_score)
+
+                # TODO: needs to be weighted
+                total_score = shape_score + color_score
+                scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores
 
-    def compare_piece(self, other):
+    def compare_piece_to_piece(self, other):
         scores = []
         for idx1, edge_image_1 in enumerate(self._edge_images):
-            curr_scores = self.compare_piece_edge(idx1, other)
+            curr_scores = self.compare_edge_to_piece(idx1, other)
             scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
         return scores
@@ -393,6 +442,3 @@ class Piece(object):
             cord = mincord
             cnt += 1
         return results.astype(dtype=np.int)
-
-
-
