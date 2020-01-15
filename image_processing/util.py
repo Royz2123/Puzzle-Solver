@@ -41,7 +41,7 @@ def relevant_section(img, test=True):
         tmp = img[100:-100, 200:-230]
     else:
         # for prosak pieces
-        tmp = img[30:-300, 780:-1070]
+        tmp = img[260:-395, 810:-1100]
 
     cv2.imshow("tmp",cv2.resize(tmp, None, fx=0.2, fy=0.2))
     # cv2.waitKey(0)

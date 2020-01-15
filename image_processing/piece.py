@@ -165,7 +165,7 @@ class Piece(object):
                     chain.append(curr_pair)
                     candidates.remove(curr_pair)
 
-
+        print(len(chains))
         max_chain = max(chains, key=len)
 
         if len(max_chain) == 3:
