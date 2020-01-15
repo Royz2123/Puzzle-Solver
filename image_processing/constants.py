@@ -1,8 +1,9 @@
-BASE = "./test_images/"
-ABOVE = BASE + "test_above.jpeg"
-BELOW = BASE + "test_below.jpeg"
+BASE = "./image_processing/test_images/"
+ABOVE = BASE + "above6.jpeg"
+BELOW = BASE + "below6.jpeg"
 
-RESULTS_BASE = "./results/"
+RESULTS_BASE = "./image_processing/results/"
+PIECES_BASE = "./image_processing/pieces/"
 
 THRESH = 75
 CNT_THRESH = 50

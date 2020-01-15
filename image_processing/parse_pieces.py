@@ -1,9 +1,10 @@
 import numpy as np
 import cv2
 
-from constants import *
-import piece
-import util
+import image_processing.util as util
+from image_processing.constants import *
+import image_processing.piece as piece
+
 
 def create_mask(below):
     below[below >= THRESH] = 0
@@ -57,6 +58,6 @@ def recog_pieces(above, below, binary):
             index += 1
 
     util.output("test", recoged)
-    cv2.waitKey(0)
+    # cv2.waitKey(0)
 
     return recoged, pieces

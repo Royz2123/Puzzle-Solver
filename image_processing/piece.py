@@ -6,9 +6,8 @@ from scipy.signal import find_peaks
 from scipy import ndimage
 import itertools
 
-from constants import *
-import test
-import util
+import image_processing.util as util
+from image_processing.constants import *
 
 
 class Piece(object):
@@ -32,10 +31,18 @@ class Piece(object):
         self._color_vectors = self.create_color_vector()
 
         self._puzzle_edges = self.puzzle_edges()
+        print(self._puzzle_edges)
+
+    def __repr__(self):
+        return self._name
+
+    def get_rotated_piece(self, edge):
+        theta = self._corner_angles[edge] + 3 * np.pi / 4
+        return ndimage.rotate(self._display, theta * 180 / np.pi)
 
     def remove_non_piece(self):
         contours, _ = cv2.findContours(self._below, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        max_c = max(contours, key = cv2.contourArea)
+        max_c = max(contours, key=cv2.contourArea)
 
         for c in contours:
             if len(c) < len(max_c):
@@ -52,6 +59,7 @@ class Piece(object):
         index = 1 # first index will be for black part, second for actual piece
         centroid = tuple(list(centroids[index].astype(int)))
         cv2.circle(self._display, centroid, 3, (0, 0, 255), 7)
+        cv2.putText(self._display, str(self._index), centroid, cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
 
         return centroid
 
@@ -65,6 +73,9 @@ class Piece(object):
 
         cv2.imshow(self._name + "_edges", edges)
         cv2.imshow(self._name, general)
+
+        cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
+        cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + " - edges.png", edges)
 
     def find_corners(self):
         # Method 1
@@ -86,23 +97,69 @@ class Piece(object):
         # dervs = np.gradient(dists)
         # dervs[abs(dervs) > 2] = 0
 
-        #
+        length = len(dists)
+        points = np.concatenate((points, points[length//16:]))
+        dists = np.lib.pad(dists, (0, length // 16), 'wrap')
+        angles = np.lib.pad(angles, (0, length // 16), 'wrap')
+        angles[length:] += 2 * np.pi
+
         peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
         plt.plot(angles[peaks], dists[peaks], "x")
         plt.plot(angles, dists)
-        plt.show()
+        # plt.plot(dists[peaks], "x")
+        # plt.plot(dists)
+        plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
         plt.clf()
 
+        angles = np.array([angle - 2*np.pi for angle in angles])
         possible_corners = list(zip(peaks, angles[peaks]))
         pairs = list(itertools.combinations(possible_corners, 2))
         pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
-        top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:3]
-        print(top_pairs)
+
+        # remove pairs that are the same
+        equivalents = [pair for pair in pairs if pair[2] == 2*np.pi]
+        to_remove = [pair[1] for pair in equivalents]
+        pairs = [pair for pair in pairs if pair[1] not in to_remove]
+
+        top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:5]
+        top_pairs = [x for x in top_pairs if abs(x[2] - np.pi/2) < 0.3 * (np.pi / 2)]
+        top_pairs = sorted(top_pairs, key=lambda x: x[0])
+
+        # try to find chain, otherwise remove
+        chains = []
+        candidates = top_pairs.copy()
+        while len(candidates) > 0:
+            curr_pair = candidates[0]
+            candidates.remove(curr_pair)
+            chain = [curr_pair]
+
+            while True:
+                nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
+                if len(nbrs) == 0:
+                    chains.append(chain)
+                    break
+                else:
+                    curr_pair = nbrs[0]
+                    chain.append(curr_pair)
+                    candidates.remove(curr_pair)
+
+
+        max_chain = max(chains, key=len)
+
+        print(self._name, chains)
+        print(self._name, max_chain)
+        # cv2.waitKey()
+
+        if len(max_chain) == 3:
+            top_pairs = max_chain
+        else:
+            print("Prbably problem")
+            top_pairs = top_pairs[:3]
 
         corners2 = list(set(
             [pair[0] for pair in top_pairs]
             + [pair[1] for pair in top_pairs]
-        ))
+        ))[:4]
         corners2 = points[corners2].tolist()
         corners2.sort(key=lambda x:
             math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
@@ -134,6 +191,8 @@ class Piece(object):
 
         real_edges_img = cv2.Canny(self._below, 100, 255)
         real_indices = np.where(real_edges_img != [0])
+
+        print(real_indices)
         real_edges = np.array(list(zip(real_indices[1], real_indices[0])))
 
         self._display[color_indices] = [0, 255, 255]
@@ -170,11 +229,19 @@ class Piece(object):
         return divided_edges
 
     def create_color_vector(self):
-        # values = self._above[self._color_edges]
-        # for edge_class in self._color_edges:
-        #     plt.plot(edge_class)
-        #     plt.show()
-        pass
+        # sort edges by curve
+        for color_edge in self._color_edges:
+            color_edges_curve = self.make_curve(np.array(color_edge))
+
+            x_s = [edge[0] for edge in color_edges_curve]
+            y_s = [edge[1] for edge in color_edges_curve]
+            indices = (x_s, y_s)
+
+            values = self._above[indices]
+            cv2.imshow("colors", self._above)
+            cv2.waitKey(0)
+        print(values)
+
 
     def create_shape_vector(self):
         # for index, angle in enumerate(self._corner_angles):
@@ -233,8 +300,11 @@ class Piece(object):
             frame[:, :edge_image.shape[1] // 2] = 1
 
             xored = np.bitwise_xor(frame, edge_image)
+            # cv2.imshow("yo", xored)
+            # cv2.waitKey(0)
+
             score = np.sum(xored)
-            puzzle_edges.append(score < 500)
+            puzzle_edges.append(score < 600)
 
         return puzzle_edges
 
@@ -268,16 +338,16 @@ class Piece(object):
         frame2 = cv2.flip(frame2, 1)
         frame2 = cv2.flip(frame2, 0)
 
-        cv2.imshow("1_" + str(idx1), frame1 * 255)
-        cv2.imshow("2_" + str(idx2), frame2 * 255)
+        # cv2.imshow("1_" + str(idx1), frame1 * 255)
+        # cv2.imshow("2_" + str(idx2), frame2 * 255)
 
         xored = cv2.bitwise_xor(frame1, frame2)
         xored = 1 - xored
         score = np.sum(xored)
 
         # xored = (frame1 + frame2) * 100
-        cv2.imshow("XOR", xored * 255)
-        cv2.waitKey(0)
+        # cv2.imshow("XOR", xored * 255)
+        # cv2.waitKey(0)
 
         return score
 
@@ -296,6 +366,33 @@ class Piece(object):
             scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
         return scores
+
+    def make_curve(self, cord_array, radius=2):
+        xmax = np.max(cord_array[:, 0])
+        ymax = np.max(cord_array[:, 1])
+        cord_matrix = np.zeros((xmax + 1, ymax + 1))
+
+        for cord in cord_array:
+            cord_matrix[cord[0], cord[1]] = 1
+        cord = cord_array[0]
+        cnt = 0
+        results = np.zeros(cord_array.shape)
+        while cnt < len(cord_array):
+            cord_matrix[cord[0], cord[1]] = 0
+            min = 10000
+            mincord = None
+            for i in range(cord[0] - radius, cord[0] + radius + 1):
+                for j in range(cord[1] - radius, cord[1] + radius + 1):
+                    if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
+                        if cord_matrix[i, j] == 1:
+                            diq = np.linalg.norm(cord - np.array([i, j]))
+                            if diq < min:
+                                min = diq
+                                mincord = np.array([i, j])
+            results[cnt, :] = cord
+            cord = mincord
+            cnt += 1
+        return results.astype(dtype=np.int)
 
 
 
