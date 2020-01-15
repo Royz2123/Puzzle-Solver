@@ -29,7 +29,7 @@ class Puzzle(object):
         return p4 + delta, p4 - delta
 
     def find_closest_piece_edge(self, p, idx, pcs):
-        pcs_dists = [(x, p.compare_piece_edge(idx, x)) for x in pcs]
+        pcs_dists = [(x, p.compare_edge_to_piece(idx, x)) for x in pcs]
         piece, edge_scores = min(pcs_dists, key=lambda x: x[1][0][1])
         print(piece, edge_scores[0][0])
         return piece, edge_scores[0][0]
@@ -37,14 +37,13 @@ class Puzzle(object):
     def display(self):
         mat = []
         for row in self._final_puzzle:
-            row = [cv2.resize(piece.get_rotated_piece(edge).copy(), (200, 200)) for piece, edge in row]
+            row = [cv2.resize(piece.get_rotated_piece(0).copy(), (200, 200)) for piece, edge in row]
             row_pic = np.concatenate(tuple(row))
             mat.append(row_pic)
         img = np.concatenate(tuple(mat), axis=1)
 
         cv2.imshow("Puzzle", img)
         cv2.waitKey(0)
-
 
     # TODO: consider pieces from other rows
     def complete_row(self, first_piece, first_edge, curr_pieces, border, row_length=None):

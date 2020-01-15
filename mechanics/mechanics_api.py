@@ -19,6 +19,11 @@ def send_command(motor, mode, speed=1000):
     ard.write(cmnd.encode())
     sleep(0.5)
 
+def pixels2steps(motor,pixels):
+  if(motor=="X"):
+    return int(1000/916.081*pixels)
+  if(motor=="Y"):
+    return int(1000/866*pixels)
 
 def get_log():
     data = ard.read_all(ard.inWaiting())

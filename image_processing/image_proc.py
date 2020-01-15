@@ -28,7 +28,7 @@ def get_pieces(above, below):
     print("here")
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 
-    pieces[0].compare_piece(pieces[1])
+    pieces[0].compare_piece_to_piece(pieces[1])
 
     return pieces
 
