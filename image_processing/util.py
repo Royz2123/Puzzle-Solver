@@ -38,7 +38,7 @@ def relevant_section(img, test=True):
 
     if test:
         # for 4 pieces
-        tmp = img[100:-100, 200:-230]
+        tmp = img[260:-395, 810:-1100]
     else:
         # for prosak pieces
         tmp = img[260:-395, 810:-1100]
