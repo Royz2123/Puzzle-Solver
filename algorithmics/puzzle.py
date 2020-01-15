@@ -139,12 +139,13 @@ class Puzzle(object):
         commands = []
 
         for ridx, row in enumerate(self._final_puzzle):
-            for cidx, piece in enumerate(row):
+            for cidx, pair in enumerate(row):
+                print(pair)
                 commands.append((
-                    piece.get_centroid()[0],
-                    piece.get_centroid()[1],
+                    pair[0].get_real_centroid()[0],
+                    pair[0].get_real_centroid()[1],
                     1000 + ridx * 500,
                     cidx * 500,
-                    piece.get_theta(),
+                    pair[0].get_theta(),
                 ))
         return commands

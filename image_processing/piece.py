@@ -17,6 +17,13 @@ class Piece(object):
         self._below = below
         self._index = index
         self._name = "Piece: %d" % index
+
+        print(above)
+        print(above.shape)
+        cv2.imshow("above", above)
+        cv2.imshow("below", below)
+        cv2.waitKey(0)
+
         self.remove_non_piece()
 
         self._display = above.copy()
@@ -33,6 +40,7 @@ class Piece(object):
         self._color_vectors = self.create_color_vector()
 
         self._puzzle_edges = self.puzzle_edges()
+
 
     def __repr__(self):
         return self._name
@@ -165,7 +173,6 @@ class Piece(object):
                     chain.append(curr_pair)
                     candidates.remove(curr_pair)
 
-        print(len(chains))
         max_chain = max(chains, key=len)
 
         if len(max_chain) == 3:
@@ -257,10 +264,10 @@ class Piece(object):
             color_vectors.append(values)
 
             # checks that goldners and prosaks code works
-            for i in range(len(x_s)):
-                cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
-            cv2.imshow("colors", self._above)
-            cv2.waitKey(0)
+            # for i in range(len(x_s)):
+            #     cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
+            # cv2.imshow("colors", self._above)
+            # cv2.waitKey(0)
             # self.display_color_edge(values)
 
         return color_vectors
@@ -285,7 +292,7 @@ class Piece(object):
             normed_xs = [np.sqrt(r2 - dist**2) for r2, dist in zip(r_squared, normed_dists)]
 
             # middle = int(max(max(normed_dists), abs(min(normed_dists))))
-            middle = 100
+            middle = 200
             shape = (int(max(normed_xs)) + 1, 2*middle + 1)
 
             mat = np.zeros(shape)
@@ -331,7 +338,8 @@ class Piece(object):
             # cv2.waitKey(0)
 
             score = np.sum(xored)
-            puzzle_edges.append(score < 1000)
+            print(score)
+            puzzle_edges.append(score < 1400)
 
         return puzzle_edges
 
