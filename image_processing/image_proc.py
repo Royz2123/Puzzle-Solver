@@ -21,8 +21,6 @@ def get_pieces(above, below, test):
     cv2.waitKey(0)
 
     not_masked = parse_pieces.show_diffs(above, binary)
-
-    print("here")
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 
     pieces[0].compare_piece_to_piece(pieces[1])

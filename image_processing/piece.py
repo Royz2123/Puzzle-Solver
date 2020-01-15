@@ -11,7 +11,8 @@ from image_processing.constants import *
 
 
 class Piece(object):
-    def __init__(self, above, below, index):
+    def __init__(self, above, below, index, relative_pos):
+        self._relative_pos = relative_pos
         self._above = above
         self._below = below
         self._index = index
@@ -32,10 +33,15 @@ class Piece(object):
         self._color_vectors = self.create_color_vector()
 
         self._puzzle_edges = self.puzzle_edges()
-        print(self._puzzle_edges)
 
     def __repr__(self):
         return self._name
+
+    def get_real_centroid(self):
+        return self._centroid + self._relative_pos
+
+    def get_real_corners(self):
+        return [np.array(corner) + self._relative_pos for corner in self._corners]
 
     def display_color_edge(self, color_vector):
         cv2.imshow("colors", np.repeat(np.array([color_vector]), 20, axis=0))
@@ -77,7 +83,6 @@ class Piece(object):
         centroid = tuple(list(centroids[index].astype(int)))
         cv2.circle(self._display, centroid, 3, (0, 0, 255), 7)
         cv2.putText(self._display, str(self._index), centroid, cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
-
         return centroid
 
     def display_piece(self):
@@ -162,10 +167,6 @@ class Piece(object):
 
 
         max_chain = max(chains, key=len)
-
-        print(self._name, chains)
-        print(self._name, max_chain)
-        # cv2.waitKey()
 
         if len(max_chain) == 3:
             top_pairs = max_chain
@@ -286,6 +287,8 @@ class Piece(object):
             # middle = int(max(max(normed_dists), abs(min(normed_dists))))
             middle = 100
             shape = (int(max(normed_xs)) + 1, 2*middle + 1)
+            print(shape)
+
             mat = np.zeros(shape)
 
             for x, y in zip(normed_xs, normed_dists):
@@ -309,6 +312,9 @@ class Piece(object):
             kernel = np.ones((4, 4), np.uint8)
             im_floodfill = cv2.erode(im_floodfill, kernel)
             im_floodfill[im_floodfill > 1] = 1
+
+            # cv2.imshow("mat", im_floodfill*255)
+            # cv2.waitKey(0)
 
             edge_images.append(im_floodfill.astype(np.uint8))
 
@@ -376,7 +382,7 @@ class Piece(object):
 
         return score
 
-    def compare_edges_color(self, idx1, other, idx2, width=20):
+    def compare_edges_color(self, idx1, other, idx2, width=50):
         color_vector_1 = self._color_vectors[idx1]
         color_vector_2 = other._color_vectors[idx2]
 
@@ -399,17 +405,22 @@ class Piece(object):
 
         return np.average(np.amin(np.array(results), axis=0))
 
+    def compare_edges_length(self, idx1, other, idx2):
+        return abs(len(self._real_edges[idx1]) - len(other._real_edges[idx2]))
+
     def compare_edge_to_piece(self, idx1, other):
         scores = []
         for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
                 shape_score = self.compare_edges_shape(idx1, other, idx2)
                 color_score = self.compare_edges_color(idx1, other, idx2)
+                length_score = self.compare_edges_length(idx1, other, idx2)
 
-                print(color_score)
+                # print(color_score)
+                # print(shape_score)
 
                 # TODO: needs to be weighted
-                total_score = shape_score # + color_score
+                total_score = shape_score
                 scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores

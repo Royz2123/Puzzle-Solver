@@ -32,9 +32,15 @@ class Puzzle(object):
 
     def find_closest_piece_edge(self, p, idx, pcs):
         pcs_dists = [(x, p.compare_edge_to_piece(idx, x)) for x in pcs]
-        piece, edge_scores = min(pcs_dists, key=lambda x: x[1][0][1])
-        print(piece, edge_scores[0][0])
-        return piece, edge_scores[0][0]
+        edges = [edge for piece, edges in pcs_dists for edge in edges]
+
+        if len(edges) == 0:
+            print("No fitting piece!, picking at random")
+            return pcs[0], 0
+        else:
+            piece, edge_scores = min(pcs_dists, key=lambda x: x[1][0][1])
+            print("Found Piece! Piece ", p, " is connected to ", piece, " by (", edge_scores[0][0], ", ", idx, ")")
+            return piece, edge_scores[0][0]
 
     def display(self):
         mat = []
@@ -123,9 +129,9 @@ class Puzzle(object):
             curr_row = self.complete_row(row_first_piece, row_puzzle_edge, curr_pieces, last_row, row_length)
             self._final_puzzle.append(curr_row)
 
-            print("First piece", row_first_piece)
+            # print("First piece", row_first_piece)
 
-        # flip puzzle if wrong
+        # flip puzzle if wrong, not sure about this
         if (first_edges[1] - first_edges[0]) % 4 == 1:
             self._final_puzzle = self._final_puzzle[::-1]
 
@@ -137,6 +143,6 @@ class Puzzle(object):
                 piece.get_centroid()[0],
                 piece.get_centroid()[1],
                 piece.get_theta(),
-            ) for piece in flattened_puzzle
+            ) for piece, edge in flattened_puzzle
         ]
         return commands
