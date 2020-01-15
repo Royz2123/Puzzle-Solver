@@ -29,17 +29,21 @@ def dist_from_line(next_corner, point):
     return neumon / denom
 
 
-def relevant_section(img):
+def relevant_section(img, test=True):
     # for 2 pieces
     # tmp = img[-900:-200,-650:-200]
 
     # for 34 pieces
     # tmp = img[70:-100,300:-230]
 
-    #for 4 pieces
-    tmp = img[260:-395,810:-1100]
+    if test:
+        # for 4 pieces
+        tmp = img[260:-395, 810:-1100]
+    else:
+        # for prosak pieces
+        tmp = img[30:-300, 780:-1070]
 
-    cv2.imshow("tmp", cv2.resize(tmp, dsize=(500, 500), interpolation=cv2.INTER_CUBIC))
+    cv2.imshow("tmp",cv2.resize(tmp, None, fx=0.2, fy=0.2))
     # cv2.waitKey(0)
     return tmp
 
@@ -52,8 +56,5 @@ def output(name, img):
 def get_test_images():
     above = cv2.imread(ABOVE, 1)
     below = cv2.imread(BELOW, 0)
-
-    above = relevant_section(above)
-    below = relevant_section(below)
 
     return above, below

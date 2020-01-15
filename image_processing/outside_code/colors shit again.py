@@ -40,7 +40,5 @@ def compare_edges_color(self, idx1, other, idx2):
         # print(results[i])
         color_vector_2 = np.roll(color_vector_2, 1)
 
-    return np.minimum(np.minimum(np.minimum(results[0], results[1]),
-                                 np.minimum(results[2], results[3])),
-                      results[4])
+    return np.amin(np.array(results), axis=0)
 

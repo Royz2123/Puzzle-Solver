@@ -11,7 +11,8 @@ from image_processing.constants import *
 
 
 class Piece(object):
-    def __init__(self, above, below, index):
+    def __init__(self, above, below, index, relative_pos):
+        self._relative_pos = relative_pos
         self._above = above
         self._below = below
         self._index = index
@@ -21,6 +22,7 @@ class Piece(object):
         self._display = above.copy()
 
         self._centroid = self.find_centroid()
+        self._theta = 0
         self._raw_color_edges, self._raw_real_edges = self.find_edges()
 
         self._corners, self._corner_angles = self.find_corners()
@@ -31,14 +33,35 @@ class Piece(object):
         self._color_vectors = self.create_color_vector()
 
         self._puzzle_edges = self.puzzle_edges()
-        print(self._puzzle_edges)
 
     def __repr__(self):
         return self._name
 
+    def get_real_centroid(self):
+        return self._centroid + self._relative_pos
+
+    def get_real_corners(self):
+        return [np.array(corner) + self._relative_pos for corner in self._corners]
+
+    def display_color_edge(self, color_vector):
+        cv2.imshow("colors", np.repeat(np.array([color_vector]), 20, axis=0))
+        cv2.waitKey(0)
+
+    def display_color_comparison(self, color_vector1, color_vector2):
+        img1 = np.repeat(np.array([color_vector1]), 20, axis=0)
+        img2 = np.repeat(np.array([color_vector2]), 20, axis=0)
+        cv2.imshow("colors", np.concatenate((img1, img2), axis=0))
+        cv2.waitKey(0)
+
+    def get_theta(self):
+        return self._theta
+
+    def get_centroid(self):
+        return self._centroid
+
     def get_rotated_piece(self, edge):
-        theta = self._corner_angles[edge] + 3 * np.pi / 4
-        return ndimage.rotate(self._display, theta * 180 / np.pi)
+        self._theta = self._corner_angles[edge] + 3 * np.pi / 4
+        return ndimage.rotate(self._display, self._theta * 180 / np.pi)
 
     def remove_non_piece(self):
         contours, _ = cv2.findContours(self._below, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -60,7 +83,6 @@ class Piece(object):
         centroid = tuple(list(centroids[index].astype(int)))
         cv2.circle(self._display, centroid, 3, (0, 0, 255), 7)
         cv2.putText(self._display, str(self._index), centroid, cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
-
         return centroid
 
     def display_piece(self):
@@ -71,7 +93,7 @@ class Piece(object):
             cv2.cvtColor(self._below, cv2.COLOR_GRAY2RGB)
         ))
 
-        cv2.imshow(self._name + "_edges", edges)
+        cv2.imshow(self._name + "_edges", cv2.resize(edges, dsize=(100, 400)))
         cv2.imshow(self._name, general)
 
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
@@ -146,10 +168,6 @@ class Piece(object):
 
         max_chain = max(chains, key=len)
 
-        print(self._name, chains)
-        print(self._name, max_chain)
-        # cv2.waitKey()
-
         if len(max_chain) == 3:
             top_pairs = max_chain
         else:
@@ -191,8 +209,6 @@ class Piece(object):
 
         real_edges_img = cv2.Canny(self._below, 100, 255)
         real_indices = np.where(real_edges_img != [0])
-
-        print(real_indices)
         real_edges = np.array(list(zip(real_indices[1], real_indices[0])))
 
         self._display[color_indices] = [0, 255, 255]
@@ -229,18 +245,25 @@ class Piece(object):
         return divided_edges
 
     def create_color_vector(self):
+        color_vectors = []
+
         # sort edges by curve
         for color_edge in self._color_edges:
             color_edges_curve = self.make_curve(np.array(color_edge))
 
-            x_s = [edge[0] for edge in color_edges_curve]
-            y_s = [edge[1] for edge in color_edges_curve]
-            indices = (x_s, y_s)
+            x_s = [edge[1] for edge in color_edges_curve]
+            y_s = [edge[0] for edge in color_edges_curve]
+            values = self._above[(x_s, y_s)]
+            color_vectors.append(values)
 
-            values = self._above[indices]
+            # checks that goldners and prosaks code works
+            for i in range(len(x_s)):
+                cv2.circle(self._above, (y_s[i], x_s[i]), 3, [255, i // 2, i//2], -1)
             cv2.imshow("colors", self._above)
             cv2.waitKey(0)
-        print(values)
+            # self.display_color_edge(values)
+
+        return color_vectors
 
 
     def create_shape_vector(self):
@@ -264,6 +287,7 @@ class Piece(object):
             # middle = int(max(max(normed_dists), abs(min(normed_dists))))
             middle = 100
             shape = (int(max(normed_xs)) + 1, 2*middle + 1)
+
             mat = np.zeros(shape)
 
             for x, y in zip(normed_xs, normed_dists):
@@ -288,6 +312,9 @@ class Piece(object):
             im_floodfill = cv2.erode(im_floodfill, kernel)
             im_floodfill[im_floodfill > 1] = 1
 
+            # cv2.imshow("mat", im_floodfill*255)
+            # cv2.waitKey(0)
+
             edge_images.append(im_floodfill.astype(np.uint8))
 
         return edge_images
@@ -304,7 +331,7 @@ class Piece(object):
             # cv2.waitKey(0)
 
             score = np.sum(xored)
-            puzzle_edges.append(score < 600)
+            puzzle_edges.append(score < 1000)
 
         return puzzle_edges
 
@@ -320,7 +347,10 @@ class Piece(object):
     def get_puzzle_regs_indices(self):
         return [idx for idx in range(len(self._puzzle_edges)) if not self._puzzle_edges[idx]]
 
-    def compare_edges(self, idx1, other, idx2):
+
+    # COMPARATORS
+
+    def compare_edges_shape(self, idx1, other, idx2):
         edge_image_1 = self._edge_images[idx1]
         edge_image_2 = other._edge_images[idx2]
 
@@ -351,48 +381,89 @@ class Piece(object):
 
         return score
 
-    def compare_piece_edge(self, idx1, other):
+    def compare_edges_color(self, idx1, other, idx2, width=50):
+        color_vector_1 = self._color_vectors[idx1]
+        color_vector_2 = other._color_vectors[idx2]
+
+        max_len = max(color_vector_1.shape[0], color_vector_2.shape[0])
+        color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
+        color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
+
+        # flip color vector 2
+        color_vector_2 = cv2.flip(color_vector_2, 0)
+
+        # self.display_color_comparison(color_vector_1, color_vector_2)
+
+        results = np.zeros((width, max_len, 3))
+        np.roll(color_vector_2, -2)
+
+        for i in range(width):
+            sub = np.subtract(color_vector_1, color_vector_2)
+            results[i] = np.abs(sub)
+            color_vector_2 = np.roll(color_vector_2, 1)
+
+        return np.average(np.amin(np.array(results), axis=0))
+
+    def compare_edges_length(self, idx1, other, idx2):
+        return abs(len(self._real_edges[idx1]) - len(other._real_edges[idx2]))
+
+    def compare_edge_to_piece(self, idx1, other):
         scores = []
-        for idx2, edge_image_2 in enumerate(other._edge_images):
+        for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
-                scores.append((idx2, self.compare_edges(idx1, other, idx2)))
+                shape_score = self.compare_edges_shape(idx1, other, idx2)
+                # color_score = self.compare_edges_color(idx1, other, idx2)
+                length_score = self.compare_edges_length(idx1, other, idx2)
+
+                # print(color_score)
+                # print(shape_score)
+
+                # TODO: needs to be weighted
+                total_score = shape_score
+                scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores
 
-    def compare_piece(self, other):
+    def compare_piece_to_piece(self, other):
         scores = []
         for idx1, edge_image_1 in enumerate(self._edge_images):
-            curr_scores = self.compare_piece_edge(idx1, other)
+            curr_scores = self.compare_edge_to_piece(idx1, other)
             scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
         return scores
 
-    def make_curve(self, cord_array, radius=2):
+    def make_curve(self, cord_array):
         xmax = np.max(cord_array[:, 0])
         ymax = np.max(cord_array[:, 1])
         cord_matrix = np.zeros((xmax + 1, ymax + 1))
 
         for cord in cord_array:
             cord_matrix[cord[0], cord[1]] = 1
+
         cord = cord_array[0]
         cnt = 0
         results = np.zeros(cord_array.shape)
-        while cnt < len(cord_array):
+        while cnt + 1 < len(cord_array):
             cord_matrix[cord[0], cord[1]] = 0
             min = 10000
             mincord = None
-            for i in range(cord[0] - radius, cord[0] + radius + 1):
-                for j in range(cord[1] - radius, cord[1] + radius + 1):
-                    if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
-                        if cord_matrix[i, j] == 1:
-                            diq = np.linalg.norm(cord - np.array([i, j]))
-                            if diq < min:
-                                min = diq
-                                mincord = np.array([i, j])
+
+            radius = 1
+            while True:
+                for i in range(cord[0] - radius, cord[0] + radius + 1):
+                    for j in range(cord[1] - radius, cord[1] + radius + 1):
+                        if not (i < 0 or i >= len(cord_matrix) or j < 0 or j >= len(cord_matrix[0])):
+                            if cord_matrix[i, j] == 1:
+                                diq = np.linalg.norm(cord - np.array([i, j]))
+                                if diq < min:
+                                    min = diq
+                                    mincord = np.array([i, j])
+
+                if mincord is None:
+                    radius *= 2
+                else:
+                    break
             results[cnt, :] = cord
             cord = mincord
             cnt += 1
         return results.astype(dtype=np.int)
-
-
-

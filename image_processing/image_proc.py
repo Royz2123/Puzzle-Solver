@@ -7,17 +7,23 @@ import image_processing.piece as piece
 import image_processing.parse_pieces as parse_pieces
 
 
-def get_pieces(above, below):
-    below, binary = parse_pieces.create_mask(below)
+def get_pieces(above, below, test):
+    util.output("below", below)
+    cv2.waitKey(0)
+
+    below, binary = parse_pieces.create_mask(below, test)
+
+    util.output("below", binary*255)
+    cv2.waitKey(0)
     masked = parse_pieces.mask_rgb(above, binary)
 
     util.output("below", below)
-    # cv2.waitKey(0)
+    cv2.waitKey(0)
 
     not_masked = parse_pieces.show_diffs(above, binary)
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 
-    pieces[0].compare_piece(pieces[1])
+    pieces[0].compare_piece_to_piece(pieces[1])
 
     return pieces
 

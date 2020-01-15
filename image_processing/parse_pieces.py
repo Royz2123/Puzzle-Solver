@@ -6,8 +6,12 @@ from image_processing.constants import *
 import image_processing.piece as piece
 
 
-def create_mask(below):
-    below[below >= THRESH] = 0
+def create_mask(below, test):
+    if test:
+        below[below >= TEST_THRESH] = 0
+    else:
+        below[below >= REAL_THRESH] = 0
+
     below[below >= 1] = 255
 
     kernel = np.ones((3, 3), np.uint8)
@@ -23,7 +27,6 @@ def create_mask(below):
 def mask_rgb(above, binary):
     mask = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
     masked = above * mask
-
     return masked
 
 
@@ -52,12 +55,20 @@ def recog_pieces(above, below, binary):
             pieces.append(piece.Piece(
                 above[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN].copy(),
                 below[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN].copy(),
-                index
+                index,
+                np.array([x - PIECE_MARGIN, y - PIECE_MARGIN])
             ))
             pieces[index].display_piece()
+
+            # plot on original piece
+            centroid = tuple(pieces[index].get_real_centroid().tolist())
+            cv2.circle(recoged, centroid,  15, [0, 0, 255], -1)
+            for corner in pieces[index].get_real_corners():
+                cv2.circle(recoged, tuple(corner.tolist()), 15, [255, 0, 0], -1)
+
             index += 1
 
     util.output("test", recoged)
-    # cv2.waitKey(0)
+    cv2.waitKey(0)
 
     return recoged, pieces

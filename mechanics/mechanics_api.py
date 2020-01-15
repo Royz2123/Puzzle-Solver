@@ -1,21 +1,9 @@
 ﻿import serial
 import numpy as np
 from time import sleep
-import image_processing.image_proc as im_proc
-import image_processing.util as util
-import image_processing.camera as camera
 
-import algorithmics.puzzle as puzzle
-
-
-import cv2
-
-
-
-import mechanics.mechanics_api as mechanics_api
 # Enter your COM port in the below line
 try:
-    # ard = serial.Serial('COM7', 9600)
     ard = serial.Serial('COM3', 9600)
     sleep(2)
     print(ard.readline(ard.inWaiting()))
