@@ -7,14 +7,11 @@ import image_processing.piece as piece
 import image_processing.parse_pieces as parse_pieces
 
 
-def get_pieces(above, below):
-    below = cv2.cvtColor(below, cv2.COLOR_BGR2GRAY)
+def get_pieces(above, below, test):
     util.output("below", below)
     cv2.waitKey(0)
 
-    below, binary = parse_pieces.create_mask(below)
-
-
+    below, binary = parse_pieces.create_mask(below, test)
 
     util.output("below", binary*255)
     cv2.waitKey(0)

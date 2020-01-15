@@ -6,10 +6,14 @@ from image_processing.constants import *
 import image_processing.piece as piece
 
 
-def create_mask(below):
+def create_mask(below, test):
     print(below.shape)
 
-    below[below >= THRESH] = 0
+    if test:
+        below[below >= TEST_THRESH] = 0
+    else:
+        below[below >= REAL_THRESH] = 0
+
     below[below >= 1] = 255
 
     kernel = np.ones((3, 3), np.uint8)
