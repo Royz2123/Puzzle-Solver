@@ -25,7 +25,7 @@ def get_images(test=True):
             below = camera.take_picture(still_camera=True)
         below = cv2.cvtColor(below, cv2.COLOR_BGR2GRAY)
 
-        mechanics_api.send_command("L", 1) #1 for turn off
+        mechanics_api.send_command_accel(l_on=0) #0 for turn off
         time.sleep(0.5)
         for i in range(5):
             above = camera.take_picture(still_camera=True)
@@ -37,30 +37,32 @@ def get_images(test=True):
 
 def main():
     # Parse pieces
-    # above, below = get_images(test=TEST_MODE)
-    #
-    # showImage("above", above)
-    # cv2.waitKey(0)
-    # cv2.imwrite("Calibrate.jpg",above)
-    # showImage("below", below)
-    #
-    # pieces = im_proc.get_pieces(above, below, TEST_MODE)
-    # puzzle_obj = puzzle.Puzzle(pieces)
-    #
-    # # Build puzzle
-    # puzzle_obj.greedy()
-    # puzzle_obj.display()
-    #
-    # # Execute puzzle
-    # command_list = puzzle_obj.create_command_list()
-    command_list = [(946, 372, 1000, 0, 3.2484306699086156), (964, 1296,
-    1000, 500, 0.07982998571223732), (425, 341, 1500, 0,
-    3.5987887391976305), (948, 840, 1500, 500, 2.9222493989846066), (422,
-    831, 2000, 0, 4.797228827480033), (463, 1322, 2000, 500,
-    4.398851793654819)]
+    above, below = get_images(test=TEST_MODE)
 
-    # print(command_list)
-    # mechanics_api.execute_command(command_list)
+    showImage("above", above)
+    cv2.waitKey(0)
+    cv2.imwrite("test.jpg",above)
+    showImage("below", below)
+
+    pieces = im_proc.get_pieces(above, below, TEST_MODE)
+    puzzle_obj = puzzle.Puzzle(pieces)
+
+    # Build puzzle
+    puzzle_obj.greedy()
+    puzzle_obj.display()
+
+    # Execute puzzle
+    command_list = puzzle_obj.create_command_list()
+    # # command_list = [(1400, 378, 1960, 200, 5.048790501062726),
+    # #                 (393, 917, 1960, 576, 0.6189205831106102),
+    # #                 (1417, 895, 2160, 200, 0.9539093029212884),
+    # #                 (851, 958, 2160, 576, 5.22494859553469),
+    # #                 (921, 363, 2360, 200, -0.6820334291744992),
+    # #                 (441, 329, 2360, 576, 2.203894689919861)]
+    # command_list = [(1793-1496,453,1793-1000,453, 0)]
+    #
+    print(command_list)
+    mechanics_api.execute_command_accel(command_list)
 
 if __name__ == "__main__":
     main()

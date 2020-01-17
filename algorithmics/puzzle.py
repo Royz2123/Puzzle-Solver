@@ -137,15 +137,16 @@ class Puzzle(object):
 
     def create_command_list(self):
         commands = []
-
+        theta=0
         for ridx, row in enumerate(self._final_puzzle):
             for cidx, pair in enumerate(row):
                 print(pair)
+                # need to flip (real) x axis which is the second coord in image
                 commands.append((
+                    1793 - pair[0].get_real_centroid()[1],
                     pair[0].get_real_centroid()[0],
-                    pair[0].get_real_centroid()[1],
-                    1000 + ridx * 500,
-                    cidx * 500,
-                    pair[0].get_theta(),
+                    2960 - (5-ridx) * 200,
+                    200 + cidx * 376,
+                    pair[0].get_theta() if pair[0].get_theta()<np.pi else 2*np.pi-pair[0].get_theta(),
                 ))
         return commands
