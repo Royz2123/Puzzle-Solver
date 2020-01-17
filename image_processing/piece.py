@@ -153,7 +153,9 @@ class Piece(object):
             plt.plot(dists)
             # plt.show()
 
-            plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
+            plt.savefig(".\\image_processing\\pieces\\%s_corner" % (
+                self._name.replace(" ", "_")
+            ))
             plt.clf()
 
             # remove pairs that are the same
@@ -192,7 +194,9 @@ class Piece(object):
             plt.plot(angles, dists)
             # plt.plot(dists[peaks], "x")
             # plt.plot(dists)
-            plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
+            plt.savefig(".\\image_processing\\pieces\\%s_corner" % (
+                self._name.replace(" ", "_")
+            ))
             plt.clf()
 
             angles = np.array([angle - 2 * np.pi for angle in angles])
