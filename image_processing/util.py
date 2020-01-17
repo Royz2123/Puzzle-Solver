@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import math
 
-from image_processing.constants import *
+from constants import *
 
 
 def rotate(origin, point, angle):
@@ -30,20 +30,23 @@ def dist_from_line(next_corner, point):
 
 
 def relevant_section(img, test=True):
-    # for 2 pieces
-    # tmp = img[-900:-200,-650:-200]
-
-    # for 34 pieces
-    # tmp = img[70:-100,300:-230]
-
     if test:
+        # for 2 pieces
+        # tmp = img[-900:-200,-650:-200]
+
+        # for 34 pieces
+        # tmp = img[70:-100,300:-230]
+
         # for 4 pieces
-        tmp = img[260:-395, 810:-1100]
+        # tmp = img[90:-50, 300:-250]
+
+        # for 6, 8 pieces
+        tmp = img[100:-100, 200:-250]
     else:
-        # for prosak pieces
+        # for real pieces
         tmp = img[260:-395, 810:-1100]
 
-    cv2.imshow("tmp",cv2.resize(tmp, None, fx=0.2, fy=0.2))
+    cv2.imshow("tmp", cv2.resize(tmp, None, fx=0.2, fy=0.2))
     # cv2.waitKey(0)
     return tmp
 

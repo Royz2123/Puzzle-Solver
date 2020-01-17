@@ -49,18 +49,22 @@ def main():
 
     # Build puzzle
     puzzle_obj.greedy()
+    puzzle_obj.connect()
     puzzle_obj.display()
 
     # Execute puzzle
-    command_list = puzzle_obj.create_command_list()
-    # # command_list = [(1400, 378, 1960, 200, 5.048790501062726),
-    # #                 (393, 917, 1960, 576, 0.6189205831106102),
-    # #                 (1417, 895, 2160, 200, 0.9539093029212884),
-    # #                 (851, 958, 2160, 576, 5.22494859553469),
-    # #                 (921, 363, 2360, 200, -0.6820334291744992),
-    # #                 (441, 329, 2360, 576, 2.203894689919861)]
+    # command_list = puzzle_obj.create_command_list()
+    # command_list = [(1400, 378, 1960, 200, 5.048790501062726),
+    #                 (393, 917, 1960, 576, 0.6189205831106102),
+    #                 (1417, 895, 2160, 200, 0.9539093029212884),
+    #                 (851, 958, 2160, 576, 5.22494859553469),
+    #                 (921, 363, 2360, 200, -0.6820334291744992),
+    #                 (441, 329, 2360, 576, 2.203894689919861)]
     # command_list = [(1793-1496,453,1793-1000,453, 0)]
     #
+
+    # Execute puzzle
+    command_list = puzzle_obj.create_command_list()
     print(command_list)
     mechanics_api.execute_command_accel(command_list)
 

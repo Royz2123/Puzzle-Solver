@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 import image_processing.util as util
-from image_processing.constants import *
+from constants import *
 import image_processing.piece as piece
 
 
