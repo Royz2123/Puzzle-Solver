@@ -7,7 +7,7 @@ import cv2
 import mechanics.mechanics_api as mechanics_api
 
 
-TEST_MODE = False
+TEST_MODE = True
 
 # Exciting! actual real main
 # Need to think about shceme - maybe we need thread for greedy in terms of speed
@@ -39,11 +39,12 @@ def get_images(test=True):
 
 
 def blinking_lights():
-    for i in range(10):
-        mechanics_api.send_command_accel(l_on=1)
-        time.sleep(0.1)
-        mechanics_api.send_command_accel(l_on=0)
-        time.sleep(0.1)
+    if not TEST_MODE:
+        for i in range(10):
+            mechanics_api.send_command_accel(l_on=1)
+            time.sleep(0.1)
+            mechanics_api.send_command_accel(l_on=0)
+            time.sleep(0.1)
 
 
 def main():
