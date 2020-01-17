@@ -3,11 +3,13 @@ import cv2
 import matplotlib.pyplot as plt
 import math
 from scipy.signal import find_peaks
+from scipy.signal import peak_widths
+from scipy.signal import peak_prominences
 from scipy import ndimage
 import itertools
 
 import image_processing.util as util
-from image_processing.constants import *
+from constants import *
 
 
 class Piece(object):
@@ -17,12 +19,6 @@ class Piece(object):
         self._below = below
         self._index = index
         self._name = "Piece: %d" % index
-
-        print(above)
-        print(above.shape)
-        cv2.imshow("above", above)
-        cv2.imshow("below", below)
-        cv2.waitKey(0)
 
         self.remove_non_piece()
 
@@ -107,103 +103,158 @@ class Piece(object):
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + " - edges.png", edges)
 
-    def find_corners(self):
+    def find_corners(self, method=3):
         # Method 1
-        corners1 = cv2.goodFeaturesToTrack(self._below, 10, 0.1, 10)
-        corners1 = np.int0(corners1)
+        if method == 1:
+            corners = cv2.goodFeaturesToTrack(self._below, 10, 0.1, 10)
+            corners = np.int0(corners)
 
         # Method 2
-        edge_info = ([(
-            point,
-            np.linalg.norm(point - np.array(self._centroid)),
-            math.atan2(point[1] - self._centroid[1], point[0] - self._centroid[0])
-        ) for index, point in enumerate(self._raw_real_edges)])
-        edge_info.sort(key=lambda x: x[2])
+        elif method == 2:
+            edge_info = ([(
+                point,
+                np.linalg.norm(point - np.array(self._centroid)),
+                math.atan2(point[1] - self._centroid[1], point[0] - self._centroid[0])
+            ) for index, point in enumerate(self._raw_real_edges)])
+            edge_info.sort(key=lambda x: x[2])
 
-        points = np.array([edge[0] for edge in edge_info])
-        dists = np.array([edge[1] for edge in edge_info])
-        angles = np.array([edge[2] for edge in edge_info])
+            points = np.array([edge[0] for edge in edge_info])
+            dists = np.array([edge[1] for edge in edge_info])
+            angles = np.array([edge[2] for edge in edge_info])
 
-        # dervs = np.gradient(dists)
-        # dervs[abs(dervs) > 2] = 0
+            # dervs = np.gradient(dists)
+            # dervs[abs(dervs) > 2] = 0
 
-        length = len(dists)
-        points = np.concatenate((points, points[length//16:]))
-        dists = np.lib.pad(dists, (0, length // 16), 'wrap')
-        angles = np.lib.pad(angles, (0, length // 16), 'wrap')
-        angles[length:] += 2 * np.pi
+            length = len(dists)
+            points = np.concatenate((points, points[length//16:]))
+            dists = np.lib.pad(dists, (0, length // 16), 'wrap')
+            angles = np.lib.pad(angles, (0, length // 16), 'wrap')
+            angles[length:] += 2 * np.pi
 
-        peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
-        plt.plot(angles[peaks], dists[peaks], "x")
-        plt.plot(angles, dists)
-        # plt.plot(dists[peaks], "x")
-        # plt.plot(dists)
-        plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
-        plt.clf()
+            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3), width=(15))
+            prominences, left_bases, right_bases = peak_prominences(dists, peaks)
+            offset = np.ones_like(prominences) * 2
+            widths = peak_widths(
+                dists, peaks,
+                rel_height=1,
+                prominence_data=(offset, left_bases, right_bases)
+            )
+            pairs = sorted(list(zip(peaks, widths[0])), key=lambda x: x[1])[:5]
+            peaks = np.array([pair[0] for pair in pairs])
 
-        angles = np.array([angle - 2*np.pi for angle in angles])
-        possible_corners = list(zip(peaks, angles[peaks]))
-        pairs = list(itertools.combinations(possible_corners, 2))
-        pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
+            # print(list(zip(peaks, widths)))
+            # print(widths)
 
-        # remove pairs that are the same
-        equivalents = [pair for pair in pairs if pair[2] == 2*np.pi]
-        to_remove = [pair[1] for pair in equivalents]
-        pairs = [pair for pair in pairs if pair[1] not in to_remove]
+            angles[length:] -= 2 * np.pi
+            peaks %= length
 
-        top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi/2))[:5]
-        top_pairs = [x for x in top_pairs if abs(x[2] - np.pi/2) < 0.3 * (np.pi / 2)]
-        top_pairs = sorted(top_pairs, key=lambda x: x[0])
+            plt.plot(peaks, dists[peaks], "x")
+            plt.hlines(*widths[1:], color="C2")
+            plt.plot(dists)
+            # plt.show()
 
-        # try to find chain, otherwise remove
-        chains = []
-        candidates = top_pairs.copy()
-        while len(candidates) > 0:
-            curr_pair = candidates[0]
-            candidates.remove(curr_pair)
-            chain = [curr_pair]
+            plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
+            plt.clf()
 
-            while True:
-                nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
-                if len(nbrs) == 0:
-                    chains.append(chain)
-                    break
-                else:
-                    curr_pair = nbrs[0]
-                    chain.append(curr_pair)
-                    candidates.remove(curr_pair)
+            # remove pairs that are the same
+            peaks = list(set(peaks))
+            if len(set(peaks)) == 5:
+                peaks = peaks[:4]
+            corners = peaks
+            corners.sort(
+                key=lambda x:
+                math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
+            )
 
-        max_chain = max(chains, key=len)
+        elif method == 3:
+            edge_info = ([(
+                point,
+                np.linalg.norm(point - np.array(self._centroid)),
+                math.atan2(point[1] - self._centroid[1], point[0] - self._centroid[0])
+            ) for index, point in enumerate(self._raw_real_edges)])
+            edge_info.sort(key=lambda x: x[2])
 
-        if len(max_chain) == 3:
-            top_pairs = max_chain
-        else:
-            print("Prbably problem")
-            top_pairs = top_pairs[:3]
+            points = np.array([edge[0] for edge in edge_info])
+            dists = np.array([edge[1] for edge in edge_info])
+            angles = np.array([edge[2] for edge in edge_info])
 
-        corners2 = list(set(
-            [pair[0] for pair in top_pairs]
-            + [pair[1] for pair in top_pairs]
-        ))[:4]
-        corners2 = points[corners2].tolist()
-        corners2.sort(key=lambda x:
-            math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
-        )
+            # dervs = np.gradient(dists)
+            # dervs[abs(dervs) > 2] = 0
 
-        for i in corners1:
-            x, y = i.ravel()
-            cv2.circle(self._display, (x, y), 5, color=(255, 255, 0), thickness=-1)
+            length = len(dists)
+            points = np.concatenate((points, points[length // 16:]))
+            dists = np.lib.pad(dists, (0, length // 16), 'wrap')
+            angles = np.lib.pad(angles, (0, length // 16), 'wrap')
+            angles[length:] += 2 * np.pi
 
-        for index, i in enumerate(corners2):
+            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
+            plt.plot(angles[peaks], dists[peaks], "x")
+            plt.plot(angles, dists)
+            # plt.plot(dists[peaks], "x")
+            # plt.plot(dists)
+            plt.savefig(".\\image_processing\\results\\graphs\\corner_" + str(self._index))
+            plt.clf()
+
+            angles = np.array([angle - 2 * np.pi for angle in angles])
+            possible_corners = list(zip(peaks, angles[peaks]))
+            pairs = list(itertools.combinations(possible_corners, 2))
+            pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
+
+            # remove pairs that are the same
+            equivalents = [pair for pair in pairs if pair[2] == 2 * np.pi]
+            to_remove = [pair[1] for pair in equivalents]
+            pairs = [pair for pair in pairs if pair[1] not in to_remove]
+
+            top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi / 2))[:5]
+            top_pairs = [x for x in top_pairs if abs(x[2] - np.pi / 2) < 0.3 * (np.pi / 2)]
+            top_pairs = sorted(top_pairs, key=lambda x: x[0])
+
+            # try to find chain, otherwise remove
+            chains = []
+            candidates = top_pairs.copy()
+            while len(candidates) > 0:
+                curr_pair = candidates[0]
+                candidates.remove(curr_pair)
+                chain = [curr_pair]
+
+                while True:
+                    nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
+                    if len(nbrs) == 0:
+                        chains.append(chain)
+                        break
+                    else:
+                        curr_pair = nbrs[0]
+                        chain.append(curr_pair)
+                        candidates.remove(curr_pair)
+
+            max_chain = max(chains, key=len)
+
+            if len(max_chain) == 3:
+                top_pairs = max_chain
+            else:
+                print("Prbably problem")
+                top_pairs = top_pairs[:3]
+
+            corners = list(set(
+                [pair[0] for pair in top_pairs]
+                + [pair[1] for pair in top_pairs]
+            ))[:4]
+            corners = points[corners].tolist()
+            corners.sort(
+                key=lambda x:
+                math.atan2(x[1] - self._centroid[1], x[0] - self._centroid[0])
+            )
+
+        for index, i in enumerate(corners):
             x, y = i
             cv2.circle(self._display, (x, y), 3, color=(255, 0, 0), thickness=-1)
             cv2.putText(self._display, str(index), (x, y), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255))
 
         corner_angles = [
             (math.atan2(point[1] - self._centroid[1], point[0] - self._centroid[0]))
-            for point in corners2
+            for point in corners
         ]
-        return corners2, corner_angles
+        return corners, corner_angles
 
     def find_edges(self):
         # genius! lets erode the image just by a bit and then definitely get edges on the inside
@@ -336,10 +387,11 @@ class Piece(object):
             xored = np.bitwise_xor(frame, edge_image)
             # cv2.imshow("yo", xored)
             # cv2.waitKey(0)
-
             score = np.sum(xored)
-            print(score)
-            puzzle_edges.append(score < 1400)
+
+            # print("Shape: ", frame.shape[0])
+            # print("Score: ", score)
+            puzzle_edges.append(score < frame.shape[0] * 4)
 
         return puzzle_edges
 
@@ -475,3 +527,16 @@ class Piece(object):
             cord = mincord
             cnt += 1
         return results.astype(dtype=np.int)
+
+    def display_real_piece(self):
+        big_pic = np.zeros((PUZZLE_SIZE, PUZZLE_SIZE, 3)).astype(dtype=np.uint8)
+        r_y, r_x = self._relative_pos
+        general = self._above.copy()
+
+        big_pic[r_x: r_x + general.shape[0], r_y: r_y + general.shape[1]] = general
+
+        # centroid = tuple(self.get_real_centroid().tolist())
+        # cv2.circle(big_pic, centroid, 10, [0, 0, 255], -1)
+        # for corner in self.get_real_corners():
+        #     cv2.circle(big_pic, tuple(corner.tolist()), 10, [255, 0, 0], -1)
+        return big_pic

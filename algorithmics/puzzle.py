@@ -1,10 +1,10 @@
 import cv2
 import numpy as np
-
 import copy
 
+from constants import *
+import algorithmics.connect_puzzle as connect_puzzle
 
-FIRST_POS = (2000, 2000)
 
 class Puzzle(object):
     def __init__(self, pieces):
@@ -19,8 +19,21 @@ class Puzzle(object):
 
         self._width, self._height = self.get_dimensions()
 
+        # check if puzzle detected is good
+        if len(self._corners) != 4: # or len(self._edges) != (self._width + self._height - 2 - 4) * 2:
+            raise Exception(
+                "Puzzle parsed wrong:\nCorners: %d/4\nWidth: %s\nHeight: %s\n" % (
+                    len(self._corners),
+                    self._width,
+                    self._height
+                )
+            )
+        else:
+            print("Connecting puzzle of dimensions: %d x %d" % (self._width, self._height))
+
         # maybe other way round? matters?
         self._final_puzzle = []
+        self._connected_puzzle = []
 
     def get_dimensions(self):
         total_edges = len(self._edges) + 2 * len(self._corners)
@@ -135,17 +148,25 @@ class Puzzle(object):
         if (first_edges[1] - first_edges[0]) % 4 == 1:
             self._final_puzzle = self._final_puzzle[::-1]
 
+    def connect(self):
+        self._connected_puzzle, connected_images = connect_puzzle.get_solved_puzzle_img(self._final_puzzle)
+
+        for image in connected_images:
+            cv2.imshow("big pic", cv2.resize(image, (0, 0), fx=1.5, fy=1.5))
+            cv2.waitKey(1000)
+        cv2.waitKey(0)
+
+
     def create_command_list(self):
         commands = []
 
-        for ridx, row in enumerate(self._final_puzzle):
-            for cidx, pair in enumerate(row):
-                print(pair)
+        for ridx, row in enumerate(self._connected_puzzle):
+            for piece, center, angle in row:
                 commands.append((
-                    pair[0].get_real_centroid()[0],
-                    pair[0].get_real_centroid()[1],
-                    1000 + ridx * 500,
-                    cidx * 500,
-                    pair[0].get_theta(),
+                    piece.get_real_centroid()[0],
+                    piece.get_real_centroid()[1],
+                    FIRST_POS[0] + center[0],
+                    FIRST_POS[1] + center[1],
+                    angle,
                 ))
         return commands
