@@ -162,11 +162,12 @@ class Puzzle(object):
 
         for ridx, row in enumerate(self._connected_puzzle):
             for piece, center, angle in row:
+                angle = (angle - np.pi/2) % (2 * np.pi)
                 commands.append((
+                    1793 - piece.get_real_centroid()[1],
                     piece.get_real_centroid()[0],
-                    piece.get_real_centroid()[1],
                     FIRST_POS[0] + center[0],
                     FIRST_POS[1] + center[1],
-                    angle,
+                    angle if angle <= np.pi else (angle - 2 * np.pi),
                 ))
         return commands
