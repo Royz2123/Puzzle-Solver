@@ -41,7 +41,7 @@ def main():
 
     showImage("above", above)
     cv2.waitKey(0)
-    cv2.imwrite("test.jpg",above)
+    cv2.imwrite("mechanics/callibration/test.jpg", above)
     showImage("below", below)
 
     pieces = im_proc.get_pieces(above, below, TEST_MODE)
