@@ -27,7 +27,7 @@ X_ACC_SLOW = 2500
 Y_SPEED_FAST = 1000  # 2000
 Y_ACC_FAST = 2000  # 4000
 THETA_SPEED = 250
-THETA_ACC = 500
+THETA_ACC = 1000
 Z_SPEED = 1000
 Z_ACC = 2000
 
@@ -160,25 +160,31 @@ def execute_command_accel(coords_arr):
     for tup in coords_arr:
         # print(tup)
         # move to piece to be picked-up
-        send_command_accel(x_steps=pixels2steps("X", tup[0] - HOME[0]),
-                           y_steps=pixels2steps("Y", tup[1] - HOME[1]))
+        send_command_accel(x_steps=pixels2steps("X", tup[0] - HOME[0]))
+        sleep(3)
+        send_command_accel( y_steps=pixels2steps("Y", tup[1] - HOME[1]))
+        sleep(3)
+        send_command_accel(theta_steps=-radians2steps(tup[4]) // 2, pump_on=1)
         sleep(3)
         send_command_accel(z_steps=Z_DROP, pump_on=1)
         sleep(3)
         send_command_accel(z_steps=-Z_DROP, pump_on=1)
         sleep(3)
         # move to placement and place
-        send_command_accel(x_steps=pixels2steps("X", tup[2] - tup[0]), y_steps=pixels2steps("Y", tup[3] - tup[1]),
-                           pump_on=1)
+        send_command_accel(x_steps=pixels2steps("X", tup[2] - tup[0]), pump_on=1)
+        sleep(3)
+        send_command_accel( y_steps=pixels2steps("Y", tup[3] - tup[1]),pump_on=1)
         sleep(3)
         send_command_accel(theta_steps=radians2steps(tup[4]), pump_on=1)
         sleep(3)
         send_command_accel(z_steps=Z_DROP, pump_on=1)
         sleep(3)
-        send_command_accel(z_steps=-Z_DROP, theta_steps=-radians2steps(tup[4]), pump_on=0)
+        send_command_accel(z_steps=-Z_DROP, pump_on=0)
         sleep(3)
 
         # home
+        send_command_accel(theta_steps=-radians2steps(tup[4]) // 2)
+        sleep(3)
         home_accel((tup[2], tup[3]))
 
 
@@ -188,12 +194,8 @@ def get_log():
 
 
 if __name__ == "__main__":
-    # #     home_accel((4000,1311))
-    while True:
-        sleep(1)
-        send_command_accel(theta_steps=-200)
-        sleep(10)
-
+    #     home_accel((4000,1311))
+    send_command_accel(pump_on=0)
     # send_command("R",radians2steps(np.pi/2),1000)
 #     send_command("Z",400,2000)
 # sleep(5)
