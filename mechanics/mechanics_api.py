@@ -4,7 +4,7 @@ from time import sleep
 
 # Enter your COM port in the below line
 try:
-    ard = serial.Serial('COM3', 9600)
+    ard = serial.Serial('COM7', 9600)
     sleep(2)
     print(ard.readline(ard.inWaiting()))
 except:
@@ -49,23 +49,16 @@ def send_command_accel(x_steps=0, y_steps=0, theta_steps=0, z_steps=0, pump_on=0
                                                             x_speed, y_speed, theta_speed, z_speed,
                                                             x_acc, y_acc, theta_acc, z_acc)
 
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-    print(ard.readline(ard.inWaiting()))
-
     ard.write(cmnd.encode())
-    sleep(0.1)
+
+    while True:
+        sleep(0.01)
+        end = ard.readline(ard.inWaiting()).decode()
+
+        # Ready to move on to the next command
+        print(end)
+        if end == "End":
+            break
 
 
 def pixels2steps(motor, pixels):

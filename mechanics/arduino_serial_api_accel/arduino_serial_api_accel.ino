@@ -33,7 +33,7 @@ const int A_tot = 2000;
 
 int newData = false;
 
-const byte numChars = 200;
+const byte numChars = 10000;
 char receivedChars[numChars];   // an array to store the received data
 
 
@@ -129,14 +129,14 @@ void loop() {
 
 
 void make_movement(command com) {
-  Serial.print("x: ");
-  Serial.println(com.x_steps);
-  Serial.print("y: ");
-  Serial.println(com.y_steps);
-  Serial.print("theta: ");
-  Serial.println(com.theta_steps);
-  Serial.print("z: ");
-  Serial.println(com.z_steps);
+//  Serial.print("x: ");
+//  Serial.println(com.x_steps);
+//  Serial.print("y: ");
+//  Serial.println(com.y_steps);
+//  Serial.print("theta: ");
+//  Serial.println(com.theta_steps);
+//  Serial.print("z: ");
+//  Serial.println(com.z_steps);
 
   if(com.x_steps!=0){
     digitalWrite(enablePinX,LOW);
@@ -211,7 +211,6 @@ void process_string() {
    
     while (Serial.available() > 0 && newData == false) {
         rc = Serial.read();
-        Serial.print(rc);
 
         if (rc != endMarker) {
             receivedChars[ndx] = rc;
@@ -226,8 +225,6 @@ void process_string() {
             newData = true;
         }
     }
-
-    Serial.print(newData);
 
     if (newData) {
       com.x_steps = atoi(strtok(receivedChars, ":"));
@@ -248,5 +245,7 @@ void process_string() {
       newData=false;
       
       make_movement(com);
+
+      Serial.println("End");
     }
 }
