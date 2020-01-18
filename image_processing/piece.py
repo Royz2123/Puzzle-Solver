@@ -189,54 +189,45 @@ class Piece(object):
             angles = np.lib.pad(angles, (0, length // 16), 'wrap')
             angles[length:] += 2 * np.pi
 
-            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
+            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3), width=(5))
             plt.plot(angles[peaks], dists[peaks], "x")
             plt.plot(angles, dists)
             # plt.plot(dists[peaks], "x")
             # plt.plot(dists)
             plt.savefig(".\\image_processing\\pieces\\%s_corner" % (
-                self._name.replace(" ", "_")
+                self._name.replace(" ", "_").replace(":", "")
             ))
             plt.clf()
 
-            angles = np.array([angle - 2 * np.pi for angle in angles])
+            # angles = np.array([angle - 2 * np.pi for angle in angles])
+            angles[length:] -= 2 * np.pi
             possible_corners = list(zip(peaks, angles[peaks]))
             pairs = list(itertools.combinations(possible_corners, 2))
-            pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
+            pairs = [(a1[0] % length, a2[0] % length, abs(a1[1] - a2[1])) for a1, a2 in pairs]
+
+            # sort pairs
+            pairs = [(a1, a2, diff) if a1 < a2 else (a2, a1, diff) for a1, a2, diff in pairs]
 
             # remove pairs that are the same
-            equivalents = [pair for pair in pairs if pair[2] == 2 * np.pi]
+            equivalents = [pair for pair in pairs if pair[2] == 0]
             to_remove = [pair[1] for pair in equivalents]
             pairs = [pair for pair in pairs if pair[1] not in to_remove]
+
+            if len(to_remove):
+                print(self._name, ":\tRemoved Pairs: ", to_remove)
 
             top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi / 2))[:5]
             top_pairs = [x for x in top_pairs if abs(x[2] - np.pi / 2) < 0.3 * (np.pi / 2)]
             top_pairs = sorted(top_pairs, key=lambda x: x[0])
 
             # try to find chain, otherwise remove
-            chains = []
-            candidates = top_pairs.copy()
-            while len(candidates) > 0:
-                curr_pair = candidates[0]
-                candidates.remove(curr_pair)
-                chain = [curr_pair]
-
-                while True:
-                    nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
-                    if len(nbrs) == 0:
-                        chains.append(chain)
-                        break
-                    else:
-                        curr_pair = nbrs[0]
-                        chain.append(curr_pair)
-                        candidates.remove(curr_pair)
-
+            chains = util.get_chains(top_pairs)
             max_chain = max(chains, key=len)
 
-            if len(max_chain) == 3:
+            if len(max_chain) >= 3:
                 top_pairs = max_chain
             else:
-                print("Prbably problem")
+                print(self._name, ":\tMax Chain not found! Chains: ", chains)
                 top_pairs = top_pairs[:3]
 
             corners = list(set(

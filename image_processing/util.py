@@ -35,13 +35,16 @@ def relevant_section(img, test=True):
         # tmp = img[-900:-200,-650:-200]
 
         # for 34 pieces
-        tmp = img[70:-100,300:-230]
+        # tmp = img[70:-100,300:-230]
 
         # for 4 pieces
         # tmp = img[90:-50, 300:-250]
 
         # for 6, 8 pieces
         # tmp = img[100:-100, 200:-250]
+
+        # for overlapping
+        tmp = img[:,:-50]
     else:
         # for real pieces
         tmp = img[260:-395, 810:-1100]
@@ -61,3 +64,23 @@ def get_test_images():
     below = cv2.imread(BELOW, 0)
 
     return above, below
+
+
+def get_chains(top_pairs):
+    chains = []
+    candidates = top_pairs.copy()
+    while len(candidates) > 0:
+        curr_pair = candidates[0]
+        candidates.remove(curr_pair)
+        chain = [curr_pair]
+
+        while True:
+            nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
+            if len(nbrs) == 0:
+                chains.append(chain)
+                break
+            else:
+                curr_pair = nbrs[0]
+                chain.append(curr_pair)
+                candidates.remove(curr_pair)
+    return chains

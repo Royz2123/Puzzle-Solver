@@ -59,6 +59,9 @@ def main():
     showImage("below", below)
 
     pieces = im_proc.get_pieces(above, below, TEST_MODE)
+    if pieces is None:
+        print("Exiting")
+        exit()
     puzzle_obj = puzzle.Puzzle(pieces)
 
     # Build puzzle
