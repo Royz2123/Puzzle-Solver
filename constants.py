@@ -1,6 +1,6 @@
 BASE = "./image_processing/test_images/"
-ABOVE = BASE + "above6.jpeg"
-BELOW = BASE + "below6.jpeg"
+ABOVE = BASE + "test_above.jpeg"
+BELOW = BASE + "test_below.jpeg"
 
 RESULTS_BASE = "./image_processing/results/"
 PIECES_BASE = "./image_processing/pieces/"

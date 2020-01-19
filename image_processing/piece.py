@@ -442,107 +442,42 @@ class Piece(object):
 
         return score
 
-    def compare_edges_color(self, idx1, other, idx2, width=25, method=2):
+    def compare_edges_color(self, idx1, other, idx2, width=10, method=2):
         color_vector_1 = self._color_vectors[idx1]
         color_vector_2 = other._color_vectors[idx2]
-
-
-        max_len = max(color_vector_1.shape[0], color_vector_2.shape[0])
-        # color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
-        # color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
-
         # flip color vector 2
         color_vector_2 = cv2.flip(color_vector_2, 0)
-        print("------------- NEW PIECE ----------------")
-        # Prosak
-        if method == 1:
-            results = np.zeros((width, max_len, 3))
-            np.roll(color_vector_2, -width//2)
+        '''
+        :param edge1: (N, 1, 3) array of RGB colors
+        :param edge2: (M, 1, 3) array of RGB colors
+        :param k: max correlation offset (in pixels)
+        :return: best correlation in offset window
+        '''
+        edge1 = np.reshape(color_vector_1, (color_vector_1.shape[0], 1, color_vector_1.shape[1]))
+        edge1 = cv2.cvtColor(edge1, cv2.COLOR_BGR2Lab)
+        edge2 = np.reshape(color_vector_2, (color_vector_2.shape[0], 1, color_vector_2.shape[1]))
+        edge2 = cv2.cvtColor(edge2, cv2.COLOR_BGR2Lab)
+        # make edge1 the longer
+        if color_vector_1.shape[0] < color_vector_2.shape[0]:
+            edge1, edge2 = edge2, edge1
+        # cut off the lightness
+        edge1 = edge1[:, :, 1:]
+        edge2 = edge2[:, :, 1:]
 
-            for i in range(width):
-                sub = np.subtract(color_vector_1, color_vector_2)
-                results[i] = np.abs(sub)
-                color_vector_2 = np.roll(color_vector_2, 1)
-            print("prosak score = ", np.average(np.amin(np.array(results), axis=0)))
-            return np.average(np.amin(np.array(results), axis=0))
-            method = 2
+        # normalize and centerize (mean = 0) edges before CC
+        nmedge1 = (edge1 - np.mean(edge1, axis=(0, 1), keepdims=True)) / \
+                  np.linalg.norm(edge1 - np.mean(edge1, axis=(0, 1), keepdims=True),
+                                 axis=(0, 1), keepdims=True)
+        nmedge2 = (edge2 - np.mean(edge2, axis=(0, 1), keepdims=True)) / \
+                  np.linalg.norm(edge2 - np.mean(edge2, axis=(0, 1), keepdims=True),
+                                 axis=(0, 1), keepdims=True)
+        # cross correlate
+        cc = signal.correlate(nmedge1, nmedge2, 'valid')
+        cc_tot = cc.reshape(cc.shape[0])
+        score1mean = np.mean(cc_tot)
 
-        # Kliger
-        if method == 2:
-            '''
-            :param edge1: (N, 1, 3) array of RGB colors
-            :param edge2: (M, 1, 3) array of RGB colors
-            :param k: max correlation offset (in pixels)
-            :return: best correlation in offset window
-            '''
-            edge1 = np.reshape(color_vector_1, (color_vector_1.shape[0], 1, color_vector_1.shape[1]))
-            edge1 = cv2.cvtColor(edge1, cv2.COLOR_BGR2HSV)
-            edge2 = np.reshape(color_vector_2, (color_vector_2.shape[0], 1, color_vector_2.shape[1]))
-            edge2 = cv2.cvtColor(edge2, cv2.COLOR_BGR2HSV)
-            # make edge1 the longer
-            if color_vector_1.shape[0] < color_vector_2.shape[0]:
-                edge1, edge2 = edge2, edge1
-            width = np.abs(color_vector_1.shape[0] - color_vector_2.shape[0])
-
-            # normalize and centerize (mean = 0) edges before CC
-            nmedge1 = (edge1 - np.mean(edge1, axis=(0, 1), keepdims=True)) / \
-                      np.linalg.norm(edge1 - np.mean(edge1, axis=(0, 1), keepdims=True),
-                                     axis=(0, 1), keepdims=True)
-            nmedge2 = (edge2 - np.mean(edge2, axis=(0, 1), keepdims=True)) / \
-                      np.linalg.norm(edge2 - np.mean(edge2, axis=(0, 1), keepdims=True),
-                                     axis=(0, 1), keepdims=True)
-            # cross correlate
-            cc = signal.correlate(nmedge1, nmedge2, 'valid')
-            cc_tot = cc.reshape(cc.shape[0])
-
-            score1max = np.max(cc_tot)
-            score1min = np.min(cc_tot)
-            score1mean = np.mean(cc_tot)
-
-            # -------------------------------- now we stretch the bitches -----------------------------------
-            color_vector_1 = self._color_vectors[idx1]
-            color_vector_2 = other._color_vectors[idx2]
-
-            max_len = max(color_vector_1.shape[0], color_vector_2.shape[0])
-            color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
-            color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
-
-            # flip color vector 2
-            color_vector_2 = cv2.flip(color_vector_2, 0)
-
-            edge1 = np.reshape(color_vector_1, (color_vector_1.shape[0], 1, color_vector_1.shape[1]))
-            edge1 = cv2.cvtColor(edge1, cv2.COLOR_BGR2HSV)
-            edge2 = np.reshape(color_vector_2, (color_vector_2.shape[0], 1, color_vector_2.shape[1]))
-            edge2 = cv2.cvtColor(edge2, cv2.COLOR_BGR2HSV)
-
-            N1 = edge1.shape[0]
-            k = width
-
-            # normalize and centerize (mean = 0) edges before CC
-            nmedge1 = (edge1 - np.mean(edge1, axis=(0, 1), keepdims=True)) / \
-                      np.linalg.norm(edge1 - np.mean(edge1, axis=(0, 1), keepdims=True),
-                                     axis=(0, 1), keepdims=True)
-            nmedge2 = (edge2 - np.mean(edge2, axis=(0, 1), keepdims=True)) / \
-                      np.linalg.norm(edge2 - np.mean(edge2, axis=(0, 1), keepdims=True),
-                                     axis=(0, 1), keepdims=True)
-            # cross correlate
-            cc = signal.correlate(nmedge1, nmedge2, 'same')
-            # sum RGB correlations for each pixel
-            cc_tot = np.sum(cc, axis=2)
-            # cut legal offset window
-            cc_window = cc_tot[int(N1 / 2 - k):int(N1 / 2 + k), 0]
-
-            score2max = np.max(cc_window)
-            score2min = np.min(cc_window)
-            score2mean = np.mean(cc_window)
-            print(self._name, " ", idx1, ", ", other._name, " ", idx2)
-            print('1max = ', score1max, " 1min = ", score1min, " 1mean = ", score1mean, "\n2max = ", score2max,
-                  " 2min = ", score2min, " 2mean = ", score2mean)
-
-            #return np.max(cc_window)
-            self.display_color_comparison(color_vector_1, color_vector_2)
-            #return np.max(cc_tot)
-            return -score1mean
+        # -------------------------------- now we stretch the bitches -----------------------------------
+        return -score1mean
 
     def compare_edges_length(self, idx1, other, idx2):
         return abs(len(self._real_edges[idx1]) - len(other._real_edges[idx2]))
@@ -559,8 +494,8 @@ class Piece(object):
                 print(shape_score)
 
                 # TODO: needs to be weighted
-                total_score = shape_score / np.abs(color_score)
-                scores.append((idx2, color_score))
+                total_score = shape_score - 300*color_score
+                scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores
 
