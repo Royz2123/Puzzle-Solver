@@ -381,13 +381,13 @@ class Piece(object):
             frame[:, :edge_image.shape[1] // 2] = 1
 
             xored = np.bitwise_xor(frame, edge_image)
-            # cv2.imshow("yo", xored)
+            # cv2.imshow("yo", xored * 255)
             # cv2.waitKey(0)
             score = np.sum(xored)
 
             # print("Shape: ", frame.shape[0])
             # print("Score: ", score)
-            puzzle_edges.append(score < frame.shape[0] * 4)
+            puzzle_edges.append(score < frame.shape[0] * 5)
 
         return puzzle_edges
 
@@ -427,11 +427,16 @@ class Piece(object):
         # cv2.imshow("1_" + str(idx1), frame1 * 255)
         # cv2.imshow("2_" + str(idx2), frame2 * 255)
 
+        kernel_erode = np.ones((1, 9), np.uint8)
+        kernel_dilate = np.ones((4, 1), np.uint8)
+        frame2 = cv2.erode(frame2, kernel_erode, iterations=1)
+        frame2 = cv2.dilate(frame2, kernel_dilate, iterations=1)
+
         xored = cv2.bitwise_xor(frame1, frame2)
         xored = 1 - xored
         score = np.sum(xored)
 
-        # xored = (frame1 + frame2) * 100
+        xored = (frame1 + frame2) * 100
         # cv2.imshow("XOR", xored * 255)
         # cv2.waitKey(0)
 
