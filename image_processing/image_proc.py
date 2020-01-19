@@ -23,9 +23,15 @@ def get_pieces(above, below, test):
     not_masked = parse_pieces.show_diffs(above, binary)
     recoged, pieces = parse_pieces.recog_pieces(masked, below, binary)
 
-    pieces[0].compare_piece_to_piece(pieces[1])
+    util.output("test", recoged)
+    cv2.waitKey(0)
 
-    return pieces
+    if pieces is None:
+        print("Overlapping Pieces!")
+        return None
+    else:
+        pieces[0].compare_piece_to_piece(pieces[1])
+        return pieces
 
     # pieces[0].compare_shape(pieces[1])
     #

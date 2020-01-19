@@ -29,7 +29,7 @@ class Puzzle(object):
                 )
             )
         else:
-            print("Connecting puzzle of dimensions: %d x %d" % (self._width, self._height))
+            print("Connecting puzzle of dimensions: %s x %s" % (self._width, self._height))
 
         # maybe other way round? matters?
         self._final_puzzle = []
