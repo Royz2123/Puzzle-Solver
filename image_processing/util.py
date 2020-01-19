@@ -34,8 +34,11 @@ def relevant_section(img, test=True):
         # for 2 pieces
         # tmp = img[-900:-200,-650:-200]
 
-        # for 34 pieces
+        # for 35 pieces
         tmp = img[70:-100,300:-230]
+
+        # for 20 pieces
+        # tmp = img
 
         # for 4 pieces
         # tmp = img[90:-50, 300:-250]

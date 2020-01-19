@@ -30,7 +30,7 @@ def get_pieces(above, below, test):
         print("Overlapping Pieces!")
         return None
     else:
-        pieces[0].compare_piece_to_piece(pieces[1])
+        pieces[0].compare_piece_to_piece(pieces[1], 0)
         return pieces
 
     # pieces[0].compare_shape(pieces[1])
