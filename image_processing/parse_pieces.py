@@ -55,7 +55,7 @@ def recog_pieces(above, below, binary):
     overlapping = [c for c in contours if c[1] > smallest[1]*1.5]
 
     # return if has overlapping
-    if not len(overlapping):
+    if len(overlapping):
         for cnt, area in contours:
             x, y, w, h = cv2.boundingRect(cnt)
             if (cnt, area) not in overlapping:

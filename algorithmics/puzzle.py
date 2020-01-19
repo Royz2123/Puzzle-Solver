@@ -97,7 +97,7 @@ class Puzzle(object):
         curr_pieces = copy.copy(self._pieces)
 
         # start with corner
-        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][2]
+        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][3]
         first_edges = first_piece.get_puzzle_regs_indices()
 
         # move along first indices
@@ -246,7 +246,8 @@ class Puzzle(object):
                 row.append((curr_piece, connector_edge))
                 curr_pieces.remove(curr_piece)
             except:
-                return row, False
+                print("Failed on Row")
+                return row, True
 
             prev_piece = curr_piece
             prev_edge = (connector_edge + 2) % 4
@@ -262,7 +263,7 @@ class Puzzle(object):
             # otherwise
             curr_edge = (connector_edge + 2) % 4
             piece_index += 1
-        return row, True
+        return row, False
 
     def find_closest_piece_edge(self, p, idx, pcs):
         pcs_dists = [(x, p.compare_edge_to_piece(idx, x)) for x in pcs]
@@ -286,8 +287,14 @@ class Puzzle(object):
 
         # get first piece orientation
         edge1, edge2 = tuple(first_edges)
-        if edge1 == 3:
-            edge2, edge1 = edge1, edge2
+        # if edge1 == 3:
+        #
+        #     edge2, edge1 = edge1, edge2
+
+        if (edge2 + 1) % 4 == edge1:
+            edge2,edge1=edge1,edge2
+
+        print("hey",edge1,edge2)
 
         # move along first indices
         first_row, stop = self.complete_row(first_piece, (edge1 + 2) % 4, curr_pieces, True)
@@ -314,13 +321,25 @@ class Puzzle(object):
                 row_first_piece._name,
                 row_connecting_edge
             ))
+            bad_future = []
+            flag = True
+            while flag:
+                print("lets try again!")
+                row_first_piece_temp, row_connecting_edge_temp = self.find_closest_piece_edge(
+                    row_first_piece,
+                    row_connecting_edge,
+                    supply
+                )
+                print(row_connecting_edge)
+                flag = not ((row_connecting_edge_temp-1)%4) in row_first_piece_temp.get_puzzle_edges_indices()
+                if flag:
+                    supply.remove(row_first_piece_temp)
+                    bad_future.append(row_first_piece_temp)
+                else:
+                    row_first_piece = row_first_piece_temp
+                    row_connecting_edge = row_connecting_edge_temp
 
-            row_first_piece, row_connecting_edge = self.find_closest_piece_edge(
-                row_first_piece,
-                row_connecting_edge,
-                supply
-            )
-
+            supply += bad_future
             row_puzzle_edge = (row_connecting_edge + 1) % 4
             row_connecting_edge = (row_connecting_edge + 2) % 4
 
