@@ -190,7 +190,7 @@ class Piece(object):
             angles = np.lib.pad(angles, (0, length // 16), 'wrap')
             angles[length:] += 2 * np.pi
 
-            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3), width=(5))
+            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3), width=(10))
             plt.plot(angles[peaks], dists[peaks], "x")
             plt.plot(angles, dists)
             # plt.plot(dists[peaks], "x")
@@ -235,6 +235,23 @@ class Piece(object):
                 [pair[0] for pair in top_pairs]
                 + [pair[1] for pair in top_pairs]
             ))[:4]
+
+            dists = np.lib.pad(dists, (length // 4, length // 4), 'wrap')
+            new_corners = []
+
+            for corner in corners:
+                ind = corner + length // 4
+                params_before = np.polyfit(np.array(range(ind - 17, ind - 7)), dists[ind - 17:ind - 7], 1, rcond=None,
+                                           full=False, w=None, cov=False)
+                params_after = np.polyfit(np.array(range(ind + 7, ind + 17)), dists[ind + 7:ind + 17], 1, rcond=None,
+                                          full=False, w=None, cov=False)
+                theta = -(params_before[1] - params_after[1]) / (params_before[0] - params_after[0])
+                # r=(params_before[0]*params_after[1]-params_after[0]*params_before[1])/(params_before[0]-params_after[0])
+                # x=np.round(r*np.cos(angles[int(np.round(theta))]))
+                # y=np.round(r*np.sin(angles[int(np.round(theta))]))
+                new_corners.append(int(np.round(theta)) - length // 4)
+            corners = new_corners
+
             corners = points[corners].tolist()
             corners.sort(
                 key=lambda x:
@@ -385,9 +402,9 @@ class Piece(object):
             # cv2.waitKey(0)
             score = np.sum(xored)
 
-            # print("Shape: ", frame.shape[0])
-            # print("Score: ", score)
-            puzzle_edges.append(score < frame.shape[0] * 5)
+            print("Shape: ", frame.shape[0])
+            print("Score: ", score)
+            puzzle_edges.append(score < frame.shape[0] * 7)
 
         return puzzle_edges
 

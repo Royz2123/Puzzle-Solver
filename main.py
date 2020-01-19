@@ -33,8 +33,8 @@ def get_images(test=True):
         for i in range(5):
             above = camera.take_picture(still_camera=True)
 
-    above = util.relevant_section(above, test)
-    below = util.relevant_section(below, test)
+    # above = util.relevant_section(above, test)
+    # below = util.relevant_section(below, test)
     return above, below
 
 
