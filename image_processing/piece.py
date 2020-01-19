@@ -7,6 +7,7 @@ from scipy.signal import peak_widths
 from scipy.signal import peak_prominences
 from scipy import ndimage
 import itertools
+from scipy import signal
 
 import image_processing.util as util
 from constants import *
@@ -126,7 +127,7 @@ class Piece(object):
             # dervs[abs(dervs) > 2] = 0
 
             length = len(dists)
-            points = np.concatenate((points, points[length//16:]))
+            points = np.concatenate((points, points[length // 16:]))
             dists = np.lib.pad(dists, (0, length // 16), 'wrap')
             angles = np.lib.pad(angles, (0, length // 16), 'wrap')
             angles[length:] += 2 * np.pi
@@ -189,54 +190,45 @@ class Piece(object):
             angles = np.lib.pad(angles, (0, length // 16), 'wrap')
             angles[length:] += 2 * np.pi
 
-            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3))
+            peaks, _ = find_peaks(dists, prominence=(5), threshold=(0, 3), width=(5))
             plt.plot(angles[peaks], dists[peaks], "x")
             plt.plot(angles, dists)
             # plt.plot(dists[peaks], "x")
             # plt.plot(dists)
             plt.savefig(".\\image_processing\\pieces\\%s_corner" % (
-                self._name.replace(" ", "_")
+                self._name.replace(" ", "_").replace(":", "")
             ))
             plt.clf()
 
-            angles = np.array([angle - 2 * np.pi for angle in angles])
+            # angles = np.array([angle - 2 * np.pi for angle in angles])
+            angles[length:] -= 2 * np.pi
             possible_corners = list(zip(peaks, angles[peaks]))
             pairs = list(itertools.combinations(possible_corners, 2))
-            pairs = [(a1[0], a2[0], abs(a1[1] - a2[1])) for a1, a2 in pairs]
+            pairs = [(a1[0] % length, a2[0] % length, abs(a1[1] - a2[1])) for a1, a2 in pairs]
+
+            # sort pairs
+            pairs = [(a1, a2, diff) if a1 < a2 else (a2, a1, diff) for a1, a2, diff in pairs]
 
             # remove pairs that are the same
-            equivalents = [pair for pair in pairs if pair[2] == 2 * np.pi]
+            equivalents = [pair for pair in pairs if pair[2] == 0]
             to_remove = [pair[1] for pair in equivalents]
             pairs = [pair for pair in pairs if pair[1] not in to_remove]
+
+            if len(to_remove):
+                print(self._name, ":\tRemoved Pairs: ", to_remove)
 
             top_pairs = sorted(pairs, key=lambda x: abs(x[2] - np.pi / 2))[:5]
             top_pairs = [x for x in top_pairs if abs(x[2] - np.pi / 2) < 0.3 * (np.pi / 2)]
             top_pairs = sorted(top_pairs, key=lambda x: x[0])
 
             # try to find chain, otherwise remove
-            chains = []
-            candidates = top_pairs.copy()
-            while len(candidates) > 0:
-                curr_pair = candidates[0]
-                candidates.remove(curr_pair)
-                chain = [curr_pair]
-
-                while True:
-                    nbrs = [pair for pair in candidates if pair[0] == curr_pair[1]]
-                    if len(nbrs) == 0:
-                        chains.append(chain)
-                        break
-                    else:
-                        curr_pair = nbrs[0]
-                        chain.append(curr_pair)
-                        candidates.remove(curr_pair)
-
+            chains = util.get_chains(top_pairs)
             max_chain = max(chains, key=len)
 
-            if len(max_chain) == 3:
+            if len(max_chain) >= 3:
                 top_pairs = max_chain
             else:
-                print("Prbably problem")
+                print(self._name, ":\tMax Chain not found! Chains: ", chains)
                 top_pairs = top_pairs[:3]
 
             corners = list(set(
@@ -445,28 +437,75 @@ class Piece(object):
 
         return score
 
-    def compare_edges_color(self, idx1, other, idx2, width=50):
+    def compare_edges_color(self, idx1, other, idx2, width=25, method=2):
         color_vector_1 = self._color_vectors[idx1]
         color_vector_2 = other._color_vectors[idx2]
 
+
         max_len = max(color_vector_1.shape[0], color_vector_2.shape[0])
-        color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
-        color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
+        # color_vector_1 = cv2.resize(color_vector_1, (3, max_len))
+        # color_vector_2 = cv2.resize(color_vector_2, (3, max_len))
 
         # flip color vector 2
         color_vector_2 = cv2.flip(color_vector_2, 0)
+        print("------------- NEW PIECE ----------------")
+        # Prosak
+        if method == 1:
+            results = np.zeros((width, max_len, 3))
+            np.roll(color_vector_2, -width//2)
 
-        # self.display_color_comparison(color_vector_1, color_vector_2)
+            for i in range(width):
+                sub = np.subtract(color_vector_1, color_vector_2)
+                results[i] = np.abs(sub)
+                color_vector_2 = np.roll(color_vector_2, 1)
+            print("prosak score = ", np.average(np.amin(np.array(results), axis=0)))
+            return np.average(np.amin(np.array(results), axis=0))
+            method = 2
 
-        results = np.zeros((width, max_len, 3))
-        np.roll(color_vector_2, -2)
+        # Kliger
+        if method == 2:
+            '''
+            :param edge1: (N, 1, 3) array of RGB colors
+            :param edge2: (M, 1, 3) array of RGB colors
+            :param k: max correlation offset (in pixels)
+            :return: best correlation in offset window
+            '''
+            edge1 = np.reshape(color_vector_1, (color_vector_1.shape[0], 1, color_vector_1.shape[1]))
+            edge1 = cv2.cvtColor(edge1, cv2.COLOR_BGR2HSV)
+            edge2 = np.reshape(color_vector_2, (color_vector_2.shape[0], 1, color_vector_2.shape[1]))
+            edge2 = cv2.cvtColor(edge2, cv2.COLOR_BGR2HSV)
+            # make edge1 the longer
+            if color_vector_1.shape[0] < color_vector_2.shape[0]:
+                edge1, edge2 = edge2, edge1
+            width = np.abs(color_vector_1.shape[0] - color_vector_2.shape[0])
+            # pad with zeros
+            # edge2 = np.vstack((edge2, np.zeros((width, 1, 3))))
+            # edge2 = np.roll(edge2, width // 2, axis = 0)
 
-        for i in range(width):
-            sub = np.subtract(color_vector_1, color_vector_2)
-            results[i] = np.abs(sub)
-            color_vector_2 = np.roll(color_vector_2, 1)
+            N1 = edge1.shape[0]
+            k = width
 
-        return np.average(np.amin(np.array(results), axis=0))
+            # normalize and centerize (mean = 0) edges before CC
+            nmedge1 = (edge1 - np.mean(edge1, axis=(0, 1), keepdims=True)) / \
+                      np.linalg.norm(edge1 - np.mean(edge1, axis=(0, 1), keepdims=True),
+                                     axis=(0, 1), keepdims=True)
+            nmedge2 = (edge2 - np.mean(edge2, axis=(0, 1), keepdims=True)) / \
+                      np.linalg.norm(edge2 - np.mean(edge2, axis=(0, 1), keepdims=True),
+                                     axis=(0, 1), keepdims=True)
+            # cross correlate
+            cc = signal.correlate(nmedge1, nmedge2, 'valid')
+            # sum RGB correlations for each pixel
+            cc_tot = cc.reshape(cc.shape[0]) #np.sum(cc, axis=2)
+            # cut legal offset window
+            #cc_window = cc_tot[int(N1 / 2 - k):int(N1 / 2 + k), 0]
+
+            #print("kliger score = ", np.max(cc_window))
+            print("kliger score = ", np.max(cc_tot))
+
+            print(self._name, " ", idx1, ", ", other._name, " ", idx2)
+            #self.display_color_comparison(color_vector_1, color_vector_2)
+            #return np.max(cc_window)
+            return np.max(cc_tot)
 
     def compare_edges_length(self, idx1, other, idx2):
         return abs(len(self._real_edges[idx1]) - len(other._real_edges[idx2]))
@@ -476,14 +515,14 @@ class Piece(object):
         for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
                 shape_score = self.compare_edges_shape(idx1, other, idx2)
-                # color_score = self.compare_edges_color(idx1, other, idx2)
+                color_score = self.compare_edges_color(idx1, other, idx2)
                 length_score = self.compare_edges_length(idx1, other, idx2)
 
-                # print(color_score)
-                # print(shape_score)
+                print(color_score)
+                print(shape_score)
 
                 # TODO: needs to be weighted
-                total_score = shape_score
+                total_score = shape_score / np.abs(color_score)
                 scores.append((idx2, total_score))
         scores.sort(key=lambda x: x[1])
         return scores
