@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from constants import *
 
 DIM=(3264, 2448)
 K=np.array([[2107.8678504205704, 0.0, 1544.8044927219369], [0.0, 2118.630372303031, 1234.9817473763783], [0.0, 0.0, 1.0]])
@@ -33,28 +34,29 @@ def take_picture(still_camera=True):
     else:
         return None
 
+
 if __name__ == "__main__":
     DYNAMIC_CAP = cv2.VideoCapture(0)
-    # DYNAMIC_CAP.set(cv2.CAP_PROP_FRAME_WIDTH, DIM[0])
-    # DYNAMIC_CAP.set(cv2.CAP_PROP_FRAME_HEIGHT, DIM[1])
+    DYNAMIC_CAP.set(cv2.CAP_PROP_FRAME_WIDTH, DIM[0])
+    DYNAMIC_CAP.set(cv2.CAP_PROP_FRAME_HEIGHT, DIM[1])
 
     # Check if camera opened successfully
     if (DYNAMIC_CAP.isOpened() == False):
         print("Dynamic Camera Disconnected!")
         exit()
 
+    index = 0
     while True:
         # Capture frame-by-frame
         ret, frame = DYNAMIC_CAP.read()
 
-        # Our operations on the frame come here
-        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Display the resulting frame
-        # cv2.imshow('frame', cv2.resize(undistort(frame), dsize=None, fx=0.2, fy=0.2))
-        cv2.imshow('frame', cv2.resize(frame, dsize=None, fx=1, fy=1))
+        frame = undistort(frame)
+        cv2.imshow('frame', cv2.resize(frame, dsize=None, fx=0.1, fy=0.1))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        elif cv2.waitKey(1) & 0xFF == ord('k'):
+            cv2.imwrite("./dynamic/frame_%d.jpg" % index, frame)
+            index += 1
 
 
 

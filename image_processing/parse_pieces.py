@@ -72,10 +72,19 @@ def recog_pieces(above, below, binary):
             cv2.putText(recoged, "Overlapping:", (x, y-15), cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 255))
         return recoged, None, True
 
+    # put all pieces in
+    # mat = np.zeros((2 * PIECE_MARGIN + recoged.shape[0], 2 * PIECE_MARGIN + recoged.shape[1], 3))
+    # mat[PIECE_MARGIN:PIECE_MARGIN + recoged.shape[0], PIECE_MARGIN:PIECE_MARGIN + recoged.shape[1]] = recoged
+    mat = recoged
+
     index = 0
     for cnt, area in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        #
+        # x += PIECE_MARGIN
+        # y += PIECE_MARGIN
+
+        cv2.rectangle(mat, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         pieces.append(piece.Piece(
             above[y - PIECE_MARGIN : y + h + PIECE_MARGIN, x - PIECE_MARGIN : x + w + PIECE_MARGIN].copy(),
@@ -87,10 +96,10 @@ def recog_pieces(above, below, binary):
 
         # plot on original piece
         centroid = tuple(pieces[index].get_real_centroid().tolist())
-        cv2.circle(recoged, centroid,  15, [0, 0, 255], -1)
+        cv2.circle(mat, centroid,  15, [0, 0, 255], -1)
         for corner in pieces[index].get_real_corners():
-            cv2.circle(recoged, tuple(corner.tolist()), 15, [255, 0, 0], -1)
+            cv2.circle(mat, tuple(corner.tolist()), 15, [255, 0, 0], -1)
 
         index += 1
 
-    return recoged, pieces, False
+    return mat, pieces, False

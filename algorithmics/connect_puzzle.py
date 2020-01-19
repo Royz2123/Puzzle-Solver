@@ -120,15 +120,21 @@ def transform_piece(piece, corner1_start, corner1_end, corner2_start, corner2_en
     return dst
 
 
+START_X = PUZZLE_SIZE - 1
+
 def get_solved_puzzle_img(final_puzzel):
     # compute starting corners
     piece, edge = final_puzzel[0][0]
     corners = piece.get_real_corners()
-    corner1 = corners[edge]
-    corner2 = corners[(edge + 1) % 4]
+
+    print(edge)
+
+    corner1 = corners[(edge + 1) % 4]
+    corner2 = corners[(edge + 2) % 4]
     a = np.sqrt((corner1[0] - corner2[0]) ** 2 + (corner1[1] - corner2[1]) ** 2)
-    corner1_next = np.array([0, 0])
-    corner2_next = np.array([0, a])
+
+    corner1_next = np.array([START_X, 0])
+    corner2_next = np.array([START_X, a])
 
     n = max([len(row) for row in final_puzzel])
     m = (len(final_puzzel))
@@ -142,25 +148,28 @@ def get_solved_puzzle_img(final_puzzel):
 
             # start of row
             if j == 0:
-                corner1_start = piece.get_real_corners()[(edge - 1) % 4]
-                corner2_start = piece.get_real_corners()[edge]
+                corner1_start = piece.get_real_corners()[(edge + 2) % 4]
+                corner2_start = piece.get_real_corners()[(edge + 1) % 4]
 
                 corner1_end = corner1_next
                 corner2_end = corner2_next
 
                 corner1_next = get_point_pixel(
                     piece, corner1_start, corner1_end, corner2_start, corner2_end,
-                    piece.get_real_corners()[(edge + 1) % 4]
+                    piece.get_real_corners()[edge % 4]
                 )
                 corner2_next = get_point_pixel(
                     piece, corner1_start, corner1_end, corner2_start, corner2_end,
-                    piece.get_real_corners()[(edge + 2) % 4]
+                    piece.get_real_corners()[(edge + 3) % 4]
                 )
             # regular pieces
             else:
-                corner1_start = piece.get_real_corners()[edge]
+                corner1_start = piece.get_real_corners()[(edge) % 4]
                 corner2_start = piece.get_real_corners()[(edge + 1) % 4]
 
+            # print("Transforming %s, moving %s to %s, and %s to %s" % (
+            #     piece, corner1_start, corner1_end, corner2_start, corner2_end
+            # ))
             img = transform_piece(piece, corner1_start, corner1_end, corner2_start, corner2_end)
 
             # save piece rotation
