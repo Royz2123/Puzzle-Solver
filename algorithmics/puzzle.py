@@ -165,6 +165,7 @@ class Puzzle(object):
 
         # sort by piece index
         for i in range(len(rankings)):
+            print("Rankings i: ", rankings[i])
             rankings[i].sort(key=lambda x: x[1] + 4 * x[0].get_index())
             print("Rankings i: ", rankings[i])
 
@@ -314,7 +315,7 @@ class Puzzle(object):
         curr_pieces = copy.copy(self._pieces)
 
         # start with corner
-        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][1]  # start with third (2 - index) corner piece
+        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][2]  # start with third (2 - index) corner piece
         first_edges = first_piece.get_puzzle_edges_indices()
 
         # get first piece orientation

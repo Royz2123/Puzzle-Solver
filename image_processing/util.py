@@ -35,10 +35,10 @@ def relevant_section(img, test=True):
         # tmp = img[-900:-200,-650:-200]
 
         # for 35 pieces
-        tmp = img[70:-100,300:-230]
+        # tmp = img[70:-100,300:-230]
 
         # for 20 pieces
-        # tmp = img
+        tmp = img
 
         # for 4 pieces
         # tmp = img[90:-50, 300:-250]
@@ -52,13 +52,13 @@ def relevant_section(img, test=True):
         # for real pieces
         tmp = img[260:-395, 810:-1100]
 
-    cv2.imshow("tmp", cv2.resize(tmp, None, fx=0.2, fy=0.2))
+    # cv2.imshow("tmp", cv2.resize(tmp, None, fx=0.2, fy=0.2))
     # cv2.waitKey(0)
     return tmp
 
 
 def output(name, img):
-    cv2.imshow(name, cv2.resize(img, dsize=(500, 500), interpolation=cv2.INTER_CUBIC))
+    cv2.imshow(name, cv2.resize(img, dsize=None, fx=0.5, fy=0.5, interpolation=cv2.INTER_CUBIC))
     cv2.imwrite(RESULTS_BASE + name + ".png", img)
 
 

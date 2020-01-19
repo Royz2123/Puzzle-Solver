@@ -8,19 +8,21 @@ import image_processing.parse_pieces as parse_pieces
 
 
 def get_pieces(above, below, test):
-    util.output("below", below)
-    cv2.waitKey(0)
-
     below, binary = parse_pieces.create_mask(below, test)
 
-    util.output("below", binary*255)
+    util.output("below", binary * 255)
     cv2.waitKey(0)
+
     masked = parse_pieces.mask_rgb(above, binary)
 
     util.output("below", below)
     cv2.waitKey(0)
 
     not_masked = parse_pieces.show_diffs(above, binary)
+
+    util.output("not masked", not_masked)
+    cv2.waitKey(0)
+
     recoged, pieces, overlapping = parse_pieces.recog_pieces(masked, below, binary)
 
     util.output("test", recoged)

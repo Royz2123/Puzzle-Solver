@@ -420,7 +420,7 @@ class Piece(object):
 
             # print("Shape: ", frame.shape[0])
             # print("Score: ", score)
-            puzzle_edges.append(score < frame.shape[0] * 5)
+            puzzle_edges.append(score < frame.shape[0] * 8)
 
         return puzzle_edges
 
