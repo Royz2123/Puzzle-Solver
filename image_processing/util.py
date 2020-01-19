@@ -35,7 +35,7 @@ def relevant_section(img, test=True):
         # tmp = img[-900:-200,-650:-200]
 
         # for 34 pieces
-        # tmp = img[70:-100,300:-230]
+        tmp = img[70:-100,300:-230]
 
         # for 4 pieces
         # tmp = img[90:-50, 300:-250]
@@ -44,7 +44,7 @@ def relevant_section(img, test=True):
         # tmp = img[100:-100, 200:-250]
 
         # for overlapping
-        tmp = img[:,:-50]
+        # tmp = img[:,:-50]
     else:
         # for real pieces
         tmp = img[260:-395, 810:-1100]

@@ -130,15 +130,15 @@ def get_solved_puzzle_img(final_puzzel):
     corner1_next = np.array([0, 0])
     corner2_next = np.array([0, a])
 
-    n = len(final_puzzel[0])
+    n = max([len(row) for row in final_puzzel])
     m = (len(final_puzzel))
     centers = [[None for j in range(n)] for i in range(m)]
     big_pic = np.zeros((PUZZLE_SIZE, PUZZLE_SIZE, 3)).astype(dtype=np.uint8)
     connected_images = []
 
-    for i in range(len(final_puzzel)):
-        for j in range(len(final_puzzel[0])):
-            piece, edge = final_puzzel[i][j]
+    for i, row in enumerate(final_puzzel):
+        for j, pair in enumerate(row):
+            piece, edge = pair
 
             # start of row
             if j == 0:
