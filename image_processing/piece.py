@@ -2,12 +2,12 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import math
+from scipy.signal import correlate
 from scipy.signal import find_peaks
 from scipy.signal import peak_widths
 from scipy.signal import peak_prominences
 from scipy import ndimage
 import itertools
-from scipy import signal
 
 import image_processing.util as util
 from constants import *
@@ -44,6 +44,9 @@ class Piece(object):
 
     def get_real_centroid(self):
         return self._centroid + self._relative_pos
+
+    def get_index(self):
+        return self._index
 
     def get_real_corners(self):
         return [np.array(corner) + self._relative_pos for corner in self._corners]
@@ -127,7 +130,7 @@ class Piece(object):
             # dervs[abs(dervs) > 2] = 0
 
             length = len(dists)
-            points = np.concatenate((points, points[length // 16:]))
+            points = np.concatenate((points, points[length//16:]))
             dists = np.lib.pad(dists, (0, length // 16), 'wrap')
             angles = np.lib.pad(angles, (0, length // 16), 'wrap')
             angles[length:] += 2 * np.pi
@@ -236,19 +239,32 @@ class Piece(object):
                 + [pair[1] for pair in top_pairs]
             ))[:4]
 
-            dists = np.lib.pad(dists, (length // 4, length // 4), 'wrap')
+            dists = np.lib.pad(dists[:length], (length // 4, length // 4), 'wrap')
             new_corners = []
+            width = 10
+            radius = 7
+            thresh = length // 20
 
             for corner in corners:
                 ind = corner + length // 4
-                params_before = np.polyfit(np.array(range(ind - 17, ind - 7)), dists[ind - 17:ind - 7], 1, rcond=None,
-                                           full=False, w=None, cov=False)
-                params_after = np.polyfit(np.array(range(ind + 7, ind + 17)), dists[ind + 7:ind + 17], 1, rcond=None,
-                                          full=False, w=None, cov=False)
+                new_dists = []
+                for i in range(ind - width - radius, ind - radius):
+                    if np.abs(dists[ind] - dists[i]) < thresh:
+                        new_dists.append([i, dists[i]])
+                hat = np.array(new_dists)
+                dists1 = hat[:, 1]
+                x_axis = hat[:, 0]
+                new_dists = []
+                for i in range(ind + radius, ind + width + radius):
+                    if np.abs(dists[ind] - dists[i]) < thresh:
+                        new_dists.append([i, dists[i]])
+                hat = np.array(new_dists)
+                dists2 = hat[:, 1]
+                y_axis = hat[:, 0]
+
+                params_before = np.polyfit(x_axis, dists1, 1, rcond=None, full=False, w=None, cov=False)
+                params_after = np.polyfit(y_axis, dists2, 1, rcond=None, full=False, w=None, cov=False)
                 theta = -(params_before[1] - params_after[1]) / (params_before[0] - params_after[0])
-                # r=(params_before[0]*params_after[1]-params_after[0]*params_before[1])/(params_before[0]-params_after[0])
-                # x=np.round(r*np.cos(angles[int(np.round(theta))]))
-                # y=np.round(r*np.sin(angles[int(np.round(theta))]))
                 new_corners.append(int(np.round(theta)) - length // 4)
             corners = new_corners
 
@@ -402,9 +418,9 @@ class Piece(object):
             # cv2.waitKey(0)
             score = np.sum(xored)
 
-            print("Shape: ", frame.shape[0])
-            print("Score: ", score)
-            puzzle_edges.append(score < frame.shape[0] * 7)
+            # print("Shape: ", frame.shape[0])
+            # print("Score: ", score)
+            puzzle_edges.append(score < frame.shape[0] * 8)
 
         return puzzle_edges
 
@@ -459,7 +475,7 @@ class Piece(object):
 
         return score
 
-    def compare_edges_color(self, idx1, other, idx2, width=10, method=2):
+    def compare_edges_color(self, idx1, other, idx2):
         color_vector_1 = self._color_vectors[idx1]
         color_vector_2 = other._color_vectors[idx2]
         # flip color vector 2
@@ -467,7 +483,6 @@ class Piece(object):
         '''
         :param edge1: (N, 1, 3) array of RGB colors
         :param edge2: (M, 1, 3) array of RGB colors
-        :param k: max correlation offset (in pixels)
         :return: best correlation in offset window
         '''
         edge1 = np.reshape(color_vector_1, (color_vector_1.shape[0], 1, color_vector_1.shape[1]))
@@ -478,8 +493,8 @@ class Piece(object):
         if color_vector_1.shape[0] < color_vector_2.shape[0]:
             edge1, edge2 = edge2, edge1
         # cut off the lightness
-        edge1 = edge1[:, :, 1:]
-        edge2 = edge2[:, :, 1:]
+        # edge1 = edge1[:, :, 1:]
+        # edge2 = edge2[:, :, 1:]
 
         # normalize and centerize (mean = 0) edges before CC
         nmedge1 = (edge1 - np.mean(edge1, axis=(0, 1), keepdims=True)) / \
@@ -489,37 +504,35 @@ class Piece(object):
                   np.linalg.norm(edge2 - np.mean(edge2, axis=(0, 1), keepdims=True),
                                  axis=(0, 1), keepdims=True)
         # cross correlate
-        cc = signal.correlate(nmedge1, nmedge2, 'valid')
+        cc = correlate(nmedge1, nmedge2, 'valid')
         cc_tot = cc.reshape(cc.shape[0])
         score1mean = np.mean(cc_tot)
-
-        # -------------------------------- now we stretch the bitches -----------------------------------
+        # score1max = np.max(cc_tot)  # if len(cc_tot) > 1 else cc_tot[0]
         return -score1mean
 
     def compare_edges_length(self, idx1, other, idx2):
         return abs(len(self._real_edges[idx1]) - len(other._real_edges[idx2]))
 
-    def compare_edge_to_piece(self, idx1, other):
+    def compare_edge_to_piece(self, idx1, other, method):
         scores = []
         for idx2 in range(len(self._edge_images)):
             if not self._puzzle_edges[idx1] and not other._puzzle_edges[idx2]:
-                shape_score = self.compare_edges_shape(idx1, other, idx2)
-                color_score = self.compare_edges_color(idx1, other, idx2)
-                length_score = self.compare_edges_length(idx1, other, idx2)
+                score = 0
+                if method == 0:
+                    score = self.compare_edges_shape(idx1, other, idx2)
+                elif method == 1:
+                    score = self.compare_edges_color(idx1, other, idx2)
+                elif method == 2:
+                    score = self.compare_edges_length(idx1, other, idx2)
 
-                print(color_score)
-                print(shape_score)
-
-                # TODO: needs to be weighted
-                total_score = shape_score - 300*color_score
-                scores.append((idx2, total_score))
+                scores.append((idx2, score))
         scores.sort(key=lambda x: x[1])
         return scores
 
-    def compare_piece_to_piece(self, other):
+    def compare_piece_to_piece(self, other, method):
         scores = []
         for idx1, edge_image_1 in enumerate(self._edge_images):
-            curr_scores = self.compare_edge_to_piece(idx1, other)
+            curr_scores = self.compare_edge_to_piece(idx1, other, method)
             scores += [(idx1, score[0], score[1]) for score in curr_scores]
         scores.sort(key=lambda x: x[2])
         return scores

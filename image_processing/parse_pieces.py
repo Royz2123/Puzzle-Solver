@@ -51,22 +51,25 @@ def recog_pieces(above, below, binary):
     contours = [c for c in contours if c[1] > CNT_THRESH]
 
     # has big contours
+    SIZE_RATIO = 1.7
     smallest = min(contours, key=lambda x: x[1])
-    overlapping = [c for c in contours if c[1] > smallest[1]*1.5]
+    overlapping = [c for c in contours if c[1] > smallest[1]*SIZE_RATIO]
+    not_overlapping = [c for c in contours if c[1] < smallest[1]*SIZE_RATIO]
 
     # return if has overlapping
     if len(overlapping):
-        for cnt, area in contours:
+        for cnt, area in not_overlapping:
             x, y, w, h = cv2.boundingRect(cnt)
-            if (cnt, area) not in overlapping:
-                cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            else:
-                cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 255), 2)
-                # M = cv2.moments(cnt)
-                # cX = int(M["m10"] / M["m00"])
-                # cY = int(M["m01"] / M["m00"])
-                cv2.circle(recoged, (x + w // 4, y + h // 2), 5, (255, 0, 0), -1)
-                cv2.putText(recoged, "Overlapping:", (x, y-15), cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 255))
+            cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        for cnt, area in overlapping:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 255), 2)
+            # M = cv2.moments(cnt)
+            # cX = int(M["m10"] / M["m00"])
+            # cY = int(M["m01"] / M["m00"])
+            cv2.circle(recoged, (x + w // 4, y + h // 2), 5, (255, 0, 0), -1)
+            cv2.putText(recoged, "Overlapping:", (x, y-15), cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 255))
         return recoged, None, True
 
     index = 0

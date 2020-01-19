@@ -7,6 +7,9 @@ import algorithmics.connect_puzzle as connect_puzzle
 
 
 class Puzzle(object):
+    # shape and color
+    METHODS = [0, 1]
+
     def __init__(self, pieces):
         self._pieces = pieces
 
@@ -97,7 +100,7 @@ class Puzzle(object):
         curr_pieces = copy.copy(self._pieces)
 
         # start with corner
-        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][3]
+        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][2]
         first_edges = first_piece.get_puzzle_regs_indices()
 
         # move along first indices
@@ -149,6 +152,36 @@ class Puzzle(object):
             cv2.waitKey(100)
         cv2.waitKey(0)
 
+    # gets list of pieces and chooses best overall method
+    def choose_best_method(self, pcs_dst_methods):
+        rankings = []
+        for i, pcs_dst in enumerate(pcs_dst_methods):
+            rankings.append([])
+
+            # sort and add rankings
+            pcs_dst.sort(key=lambda x: x[2])
+            for j, triple in enumerate(pcs_dst):
+                rankings[i].append((triple[0], triple[1], j))
+
+        # sort by piece index
+        for i in range(len(rankings)):
+            print("Rankings i: ", rankings[i])
+            rankings[i].sort(key=lambda x: x[1] + 4 * x[0].get_index())
+            print("Rankings i: ", rankings[i])
+
+        # merge arrays (Assume they all have the same edges)
+        final_ranking = []
+        for i in range(len(rankings[0])):
+            # Maybe weighted sum ?
+            score = sum([ranking[i][2] for ranking in rankings])
+            final_ranking.append((rankings[0][i][0], rankings[0][i][1], score))
+
+        final_ranking.sort(key=lambda x: x[2])
+        print("Final Rankings: ", final_ranking)
+
+        # get minimal score
+        return min(final_ranking, key=lambda x: x[2])
+
     def create_command_list(self):
         commands = []
 
@@ -166,7 +199,7 @@ class Puzzle(object):
 
     # TODO: consider pieces from other rows
     def complete_row(self, first_piece, first_edge, curr_pieces, border, row_length=None, row_before=None):
-        row = [(first_piece, (first_edge + 2)%4)]
+        row = [(first_piece, (first_edge + 2) % 4)]
         curr_pieces.remove(first_piece)  # makes sense
 
         if not len(curr_pieces):
@@ -194,46 +227,45 @@ class Puzzle(object):
             if not len(supply):
                 supply = curr_pieces
 
-            if row_before is None:
-                pcs_dists = [(x, curr_piece.compare_edge_to_piece(curr_edge, x)) for x in supply]
+            # find next piece
+            pcs_dists_methods = []
+            for method in Puzzle.METHODS:
+                if row_before is None:
+                    pcs_dists = [(x, curr_piece.compare_edge_to_piece(curr_edge, x, method)) for x in supply]
 
-                # set in format that we want
-                pcs_dists = [(piece, edge, score) for piece, data in pcs_dists for edge, score in data]
-                pcs_dists.sort(key=lambda x: x[2])
+                    # set in format that we want
+                    pcs_dists = [(piece, edge, score) for piece, data in pcs_dists for edge, score in data]
+                    pcs_dists.sort(key=lambda x: x[2])
 
-                pcs_dists = [
-                    triple for triple in pcs_dists
-                    if (triple[1] + 1) % 4 in triple[0].get_puzzle_edges_indices()
-                ]
+                    pcs_dists = [
+                        triple for triple in pcs_dists
+                        if (triple[1] + 1) % 4 in triple[0].get_puzzle_edges_indices()
+                    ]
 
-                print(pcs_dists)
-                curr_piece, connector_edge, score = min(pcs_dists, key=lambda x: x[2])
+                if not row_before is None and len(row_before) - 1 >= piece_index:
+                    pcs_dists_1 = [(x, curr_piece.compare_edge_to_piece(curr_edge, x, method)) for x in supply]
+                    pcs_dists_2 = [
+                        (x, row_before[piece_index][0].compare_edge_to_piece((row_before[piece_index][1] - 1) % 4, x,
+                                                                             method)) for x
+                        in supply]
 
-            if not row_before is None and len(row_before) - 1 >= piece_index:
-                pcs_dists_1 = [(x, curr_piece.compare_edge_to_piece(curr_edge, x)) for x in supply]
-                pcs_dists_2 = [
-                    (x, row_before[piece_index][0].compare_edge_to_piece((row_before[piece_index][1] - 1) % 4, x)) for x
-                    in supply]
+                    pcs_dists = []
+                    for i in range(len(pcs_dists_1)):
+                        piece1, data1 = pcs_dists_1[i]
+                        _, data2 = pcs_dists_2[i]
 
-                possible_pieces = []
-                for i in range(len(pcs_dists_1)):
-                    piece1, data1 = pcs_dists_1[i]
-                    _, data2 = pcs_dists_2[i]
+                        # create new dataset
+                        for edge1, score1 in data1:
+                            find_edge = (edge1 + 1) % 4
+                            nexts = [(edge2, score2) for edge2, score2 in data2 if edge2 == find_edge]
+                            if len(nexts):
+                                pcs_dists.append((piece1, edge1, score1 + nexts[0][1]))
 
-                    # create new dataset
-                    for edge1, score1 in data1:
-                        find_edge = (edge1 + 1) % 4
-                        nexts = [(edge2, score2) for edge2, score2 in data2 if edge2 == find_edge]
-                        if len(nexts):
-                            possible_pieces.append((piece1, edge1, score1 + nexts[0][1]))
+                pcs_dists_methods.append(pcs_dists)
 
-                if not len(possible_pieces):
-                    break
-
-                possible_pieces.sort(key=lambda x: x[2])
-                curr_piece, connector_edge, score = min(possible_pieces, key=lambda x: x[2])
-
-                print(possible_pieces)
+            if not len(pcs_dists_methods[0]):
+                return row, True
+            curr_piece, connector_edge, score = self.choose_best_method(pcs_dists_methods)
 
             try:
                 print("Found Piece! %s is connected to %s by (%d, %d)" % (
@@ -254,9 +286,9 @@ class Puzzle(object):
 
             # have we finished?
             if (
-                curr_piece.is_puzzle_corner()
-                or (not border and curr_piece.is_puzzle_edge())
-                or len(row) == row_length
+                    curr_piece.is_puzzle_corner()
+                    or (not border and curr_piece.is_puzzle_edge())
+                    or len(row) == row_length
             ):
                 break
 
@@ -266,23 +298,24 @@ class Puzzle(object):
         return row, False
 
     def find_closest_piece_edge(self, p, idx, pcs):
-        pcs_dists = [(x, p.compare_edge_to_piece(idx, x)) for x in pcs]
-        edges = [edge for piece, edges in pcs_dists for edge in edges]
+        pcs_dists_methods = []
+        for method in Puzzle.METHODS:
+            pcs_dists = [(x, p.compare_edge_to_piece(idx, x, method)) for x in pcs]
+            pcs_dists = [(piece, edge, score) for piece, data in pcs_dists for edge, score in data]
+            pcs_dists.sort(key=lambda x: x[2])
 
-        if len(edges) == 0:
-            print("No fitting piece!, picking at random")
-            return pcs[0], 0
-        else:
-            piece, edge_scores = min(pcs_dists, key=lambda x: x[1][0][1])
-            print("Found First Row Piece! Piece ", p, " is connected to ", piece, " by (", edge_scores[0][0], ", ", idx,
-                  ")")
-            return piece, edge_scores[0][0]
+            if not len(pcs_dists):
+                print("No fitting piece")
+
+            pcs_dists_methods.append(pcs_dists)
+        curr_piece, connector_edge, score = self.choose_best_method(pcs_dists_methods)
+        return curr_piece, connector_edge
 
     def greedy(self):
         curr_pieces = copy.copy(self._pieces)
 
         # start with corner
-        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][3]  # start with third (2 - index) corner piece
+        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][2]  # start with third (2 - index) corner piece
         first_edges = first_piece.get_puzzle_edges_indices()
 
         # get first piece orientation
@@ -292,9 +325,9 @@ class Puzzle(object):
         #     edge2, edge1 = edge1, edge2
 
         if (edge2 + 1) % 4 == edge1:
-            edge2,edge1=edge1,edge2
+            edge2, edge1 = edge1, edge2
 
-        print("hey",edge1,edge2)
+        print("hey", edge1, edge2)
 
         # move along first indices
         first_row, stop = self.complete_row(first_piece, (edge1 + 2) % 4, curr_pieces, True)
@@ -321,17 +354,22 @@ class Puzzle(object):
                 row_first_piece._name,
                 row_connecting_edge
             ))
+
             bad_future = []
+            not_found = False
             flag = True
             while flag:
-                print("lets try again!")
+                if not len(supply):
+                    not_found = True
+                    break
+
                 row_first_piece_temp, row_connecting_edge_temp = self.find_closest_piece_edge(
                     row_first_piece,
                     row_connecting_edge,
                     supply
                 )
-                print(row_connecting_edge)
-                flag = not ((row_connecting_edge_temp-1)%4) in row_first_piece_temp.get_puzzle_edges_indices()
+
+                flag = not ((row_connecting_edge_temp - 1) % 4) in row_first_piece_temp.get_puzzle_edges_indices()
                 if flag:
                     supply.remove(row_first_piece_temp)
                     bad_future.append(row_first_piece_temp)
@@ -339,13 +377,16 @@ class Puzzle(object):
                     row_first_piece = row_first_piece_temp
                     row_connecting_edge = row_connecting_edge_temp
 
+            if not_found:
+                break
+
             supply += bad_future
             row_puzzle_edge = (row_connecting_edge + 1) % 4
             row_connecting_edge = (row_connecting_edge + 2) % 4
 
             # find the row
             curr_row, stop = self.complete_row(row_first_piece, row_puzzle_edge, curr_pieces, last_row,
-                                         row_length, curr_row)
+                                               row_length, curr_row)
             self._final_puzzle.append(curr_row)
 
             if stop:
