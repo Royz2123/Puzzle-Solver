@@ -14,7 +14,7 @@ def create_mask(below, test):
 
     below[below >= 1] = 255
 
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     below = cv2.morphologyEx(below, cv2.MORPH_OPEN, kernel)
     below = cv2.morphologyEx(below, cv2.MORPH_CLOSE, kernel)
 
