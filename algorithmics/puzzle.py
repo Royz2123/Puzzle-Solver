@@ -8,7 +8,7 @@ import algorithmics.connect_puzzle as connect_puzzle
 
 class Puzzle(object):
     # shape and color
-    METHODS = [0, 1]
+    METHODS = [1]
 
     def __init__(self, pieces):
         self._pieces = pieces
