@@ -8,7 +8,7 @@ import algorithmics.connect_puzzle as connect_puzzle
 
 class Puzzle(object):
     # shape and color
-    METHODS = [0]
+    METHODS = [0, 1]
 
     def __init__(self, pieces):
         self._pieces = pieces
@@ -38,6 +38,9 @@ class Puzzle(object):
         self._final_puzzle = []
         self._connected_puzzle = []
 
+    def get_pieces(self):
+        return self._pieces
+
     def get_dimensions(self):
         total_edges = len(self._edges) + 2 * len(self._corners)
 
@@ -57,7 +60,7 @@ class Puzzle(object):
         img = np.concatenate(tuple(mat), axis=1)
 
         cv2.imshow("Puzzle", img)
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
 
     # TODO: consider pieces from other rows
     def complete_row_old(self, first_piece, first_edge, curr_pieces, border, row_length=None):
@@ -148,17 +151,19 @@ class Puzzle(object):
     def connect(self):
         self._connected_puzzle, connected_images = connect_puzzle.get_solved_puzzle_img(self._final_puzzle)
 
-        for image in connected_images:
+        for index, image in enumerate(connected_images):
             cv2.imshow("big pic", cv2.resize(image, (0, 0), fx=0.5, fy=0.5))
+            cv2.imwrite(".\\image_processing\\results\\videos\\%d.png" % index, image)
             cv2.waitKey(100)
+        cv2.waitKey(0)
 
         # print data from the connected puzzle
         img = connected_images[-1]
         for row in self._connected_puzzle:
             for piece, center, angle in row:
                 cv2.circle(img, (int(center[0]), int(center[1])), 5, (255, 0, 0), -1)
-        cv2.imshow("mat", img)
-        cv2.waitKey(0)
+        # cv2.imshow("mat", img)
+        # cv2.waitKey(0)
 
     # gets list of pieces and chooses best overall method
     def choose_best_method(self, pcs_dst_methods):
@@ -197,8 +202,8 @@ class Puzzle(object):
             for piece, center, angle in row:
                 angle = (angle - np.pi / 2) % (2 * np.pi)
                 commands.append((
-                    1793 - piece.get_real_centroid()[1],
-                    piece.get_real_centroid()[0],
+                    1793 - piece.get_pickup()[0],
+                    piece.get_pickup()[1],
                     FIRST_POS[0] + center[0],
                     FIRST_POS[1] + center[1],
                     angle if angle <= np.pi else (angle - 2 * np.pi),
@@ -321,7 +326,7 @@ class Puzzle(object):
 
     def greedy(self):
         corners = [p for p in self._pieces if p.is_puzzle_corner()]
-        for corner in corners:
+        for corner in corners[1:]:
             self._final_puzzle = []
             if self.greedy_try_corner(corner):
                 break

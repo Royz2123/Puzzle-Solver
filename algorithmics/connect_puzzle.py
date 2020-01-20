@@ -67,8 +67,8 @@ def create_trans(center, corner1_start, corner1_end, corner2_start, corner2_end)
 
 
 def get_center_pixel(piece, corner1_start, corner1_end, corner2_start, corner2_end):
-    (centerx, centery) = piece.get_real_centroid()
-    matrix = create_trans(piece.get_real_centroid(), corner1_start, corner1_end, corner2_start, corner2_end)
+    (centerx, centery) = piece.get_pickup()
+    matrix = create_trans(piece.get_pickup(), corner1_start, corner1_end, corner2_start, corner2_end)
     newx = (centerx * matrix[0, 0] + centery * matrix[0, 1] + matrix[0, 2])
     newy = centerx * matrix[1, 0] + centery * matrix[1, 1] + matrix[1, 2]
     sin = matrix[1, 0]
@@ -79,7 +79,7 @@ def get_center_pixel(piece, corner1_start, corner1_end, corner2_start, corner2_e
 
 def get_point_pixel(piece, corner1_start, corner1_end, corner2_start, corner2_end, point):
     (centerx, centery) = point
-    matrix = create_trans(piece.get_real_centroid(), corner1_start, corner1_end, corner2_start, corner2_end)
+    matrix = create_trans(piece.get_pickup(), corner1_start, corner1_end, corner2_start, corner2_end)
     newx = centerx * matrix[0, 0] + centery * matrix[0, 1] + matrix[0, 2]
     newy = centerx * matrix[1, 0] + centery * matrix[1, 1] + matrix[1, 2]
     return np.array([newx, newy])
@@ -94,7 +94,7 @@ def do_transform(point, matrix):
 
 
 def transform_piece(piece, corner1_start, corner1_end, corner2_start, corner2_end):
-    matrix = create_trans(piece.get_real_centroid(), corner1_start, corner1_end, corner2_start, corner2_end)
+    matrix = create_trans(piece.get_pickup(), corner1_start, corner1_end, corner2_start, corner2_end)
     img = piece.display_real_piece()
 
     small = img.copy()

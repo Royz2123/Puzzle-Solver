@@ -61,6 +61,13 @@ def send_command_accel(x_steps=0, y_steps=0, theta_steps=0, z_steps=0, pump_on=0
             break
 
 
+def move_piece(src, dst):
+    # move to 3000
+    # move to location
+    # move back to 2000
+    pass
+
+
 def pixels2steps(motor, pixels):
     if motor == "X":
         # return int(1000 / 916.081 * pixels)

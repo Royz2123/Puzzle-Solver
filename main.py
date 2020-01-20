@@ -6,8 +6,10 @@ import algorithmics.puzzle as puzzle
 import cv2
 import mechanics.mechanics_api as mechanics_api
 
+import game
 
 TEST_MODE = True
+GAME_MODE = False
 
 # Exciting! actual real main
 # Need to think about shceme - maybe we need thread for greedy in terms of speed
@@ -54,20 +56,25 @@ def main():
     above, below = get_images(test=TEST_MODE)
 
     showImage("above", above)
-    # cv2.waitKey(0)
-    # cv2.imwrite("mechanics/callibration/test.jpg", above)
     showImage("below", below)
+    cv2.waitKey(0)
 
-    pieces = im_proc.get_pieces(above, below, TEST_MODE)
-    if pieces is None:
-        print("Exiting")
-        exit()
+    while True:
+        pieces, no_overlap = im_proc.get_pieces(above, below, TEST_MODE)
+        if no_overlap:
+            break
+        # pieces is just an (x,y) pair of src and dst
+        mechanics_api.move_piece(pieces[0], pieces[1])
     puzzle_obj = puzzle.Puzzle(pieces)
 
     # Build puzzle
     puzzle_obj.greedy()
     puzzle_obj.connect()
     puzzle_obj.display()
+
+    # Game option
+    if GAME_MODE:
+        game.start_game(puzzle_obj)
 
     # Execute puzzle
     # command_list = puzzle_obj.create_command_list()

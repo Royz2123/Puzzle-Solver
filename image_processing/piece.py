@@ -26,6 +26,7 @@ class Piece(object):
         self._display = above.copy()
 
         self._centroid = self.find_centroid()
+        self._pickup = self.find_pickup()
         self._theta = 0
         self._raw_color_edges, self._raw_real_edges = self.find_edges()
 
@@ -38,12 +39,11 @@ class Piece(object):
 
         self._puzzle_edges = self.puzzle_edges()
 
-
     def __repr__(self):
         return self._name
 
-    def get_real_centroid(self):
-        return self._centroid + self._relative_pos
+    def get_pickup(self):
+        return self._pickup + self._relative_pos
 
     def get_index(self):
         return self._index
@@ -63,6 +63,9 @@ class Piece(object):
 
     def get_theta(self):
         return self._theta
+
+    def get_name(self):
+        return self._name
 
     def get_centroid(self):
         return self._centroid
@@ -93,6 +96,28 @@ class Piece(object):
         cv2.putText(self._display, str(self._index), centroid, cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
         return centroid
 
+    def find_pickup(self):
+        # connected compnents
+        new_shape = (self._below.shape[0] + 2, self._below.shape[1] + 2)
+        mat = np.zeros(new_shape) + 1
+        mat[1:-1, 1:-1] = self._below
+        mat = mat.astype(np.uint8)
+
+        dist = cv2.distanceTransform(mat, cv2.DIST_L2, 3)
+
+        loc = np.unravel_index(np.argmax(dist), mat.shape)
+        y, x = loc
+        cv2.circle(mat, (x, y), 20, 2, -1)
+
+        # util.output("sup1", cv2.resize(mat * 127, dsize=None, fx=0.5, fy=0.5))
+        # util.output("sup2", cv2.resize(dist.astype(np.uint8), dsize=None, fx=0.5, fy=0.5))
+        #
+        # cv2.waitKey(0)
+
+        cv2.circle(self._display, (x, y), 3, (0, 0, 255), 7)
+        cv2.putText(self._display, str(self._index), (x, y), cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 255, 255))
+        return (x, y)
+
     def display_piece(self):
         edges = np.concatenate(tuple([img*255 for img in self._edge_images]), axis=0)
         general = np.concatenate((
@@ -101,11 +126,12 @@ class Piece(object):
             cv2.cvtColor(self._below, cv2.COLOR_GRAY2RGB)
         ))
 
-        cv2.imshow(self._name + "_edges", cv2.resize(edges, dsize=(100, 400)))
-        cv2.imshow(self._name, general)
+        # cv2.imshow(self._name + "_edges", cv2.resize(edges, dsize=(100, 400)))
+        # cv2.imshow(self._name, general)
 
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + ".png", general)
         cv2.imwrite(PIECES_BASE + self._name.replace(":", "") + " - edges.png", edges)
+        cv2.imwrite(PIECES_BASE + "game_images//" + self._name.replace(":", "") + ".png", self._above)
 
     def find_corners(self, method=3):
         # Method 1

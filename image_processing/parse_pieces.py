@@ -4,6 +4,8 @@ import cv2
 import image_processing.util as util
 from constants import *
 import image_processing.piece as piece
+from random import random
+
 
 
 def create_mask(below, test):
@@ -65,12 +67,13 @@ def recog_pieces(above, below, binary):
         for cnt, area in overlapping:
             x, y, w, h = cv2.boundingRect(cnt)
             cv2.rectangle(recoged, (x, y), (x + w, y + h), (0, 255, 255), 2)
-            # M = cv2.moments(cnt)
-            # cX = int(M["m10"] / M["m00"])
-            # cY = int(M["m01"] / M["m00"])
-            cv2.circle(recoged, (x + w // 4, y + h // 2), 5, (255, 0, 0), -1)
+
+            # randomize pickup place
+            new_loc = (int(x + random() * (w // 2) + w // 4), y + h // 2)
+
+            cv2.circle(recoged, new_loc, 5, (255, 0, 0), -1)
             cv2.putText(recoged, "Overlapping:", (x, y-15), cv2.FONT_HERSHEY_DUPLEX, 1.5, (255, 255, 255))
-        return recoged, None, True
+        return recoged, new_loc, True
 
     # put all pieces in
     # mat = np.zeros((2 * PIECE_MARGIN + recoged.shape[0], 2 * PIECE_MARGIN + recoged.shape[1], 3))
@@ -95,7 +98,7 @@ def recog_pieces(above, below, binary):
         pieces[index].display_piece()
 
         # plot on original piece
-        centroid = tuple(pieces[index].get_real_centroid().tolist())
+        centroid = tuple(pieces[index].get_pickup().tolist())
         cv2.circle(mat, centroid,  15, [0, 0, 255], -1)
         for corner in pieces[index].get_real_corners():
             cv2.circle(mat, tuple(corner.tolist()), 15, [255, 0, 0], -1)
@@ -103,3 +106,21 @@ def recog_pieces(above, below, binary):
         index += 1
 
     return mat, pieces, False
+
+
+def find_empty_place(below):
+    new_shape = (below.shape[0] + 2, below.shape[1] + 2)
+    mat = np.zeros(new_shape) + 1
+    mat[1:-1, 1:-1] = below
+    mat = mat.astype(np.uint8)
+
+    dist = cv2.distanceTransform(1 - mat, cv2.DIST_L2, 3)
+
+    loc = np.unravel_index(np.argmax(dist), mat.shape)
+    y, x = loc
+    cv2.circle(mat, (x, y), 20, 2, -1)
+
+    util.output("sup1", cv2.resize(mat * 127, dsize=None, fx=0.5, fy=0.5))
+    util.output("sup2", cv2.resize(dist.astype(np.uint8), dsize=None, fx=0.5, fy=0.5))
+
+    return (x, y)

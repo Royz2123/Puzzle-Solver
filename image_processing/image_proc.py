@@ -30,10 +30,11 @@ def get_pieces(above, below, test):
 
     if overlapping:
         print("Overlapping Pieces!")
-        return None
+        location = parse_pieces.find_empty_place(binary)
+        return [pieces, location], False
     else:
         pieces[0].compare_piece_to_piece(pieces[1], 0)
-        return pieces
+        return pieces, True
 
     # pieces[0].compare_shape(pieces[1])
     #
