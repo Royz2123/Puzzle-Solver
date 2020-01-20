@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from constants import *
 
 DIM=(3264, 2448)
 K=np.array([[2107.8678504205704, 0.0, 1544.8044927219369], [0.0, 2118.630372303031, 1234.9817473763783], [0.0, 0.0, 1.0]])
@@ -32,6 +33,7 @@ def take_picture(still_camera=True):
         return undistort(frame)
     else:
         return None
+
 
 if __name__ == "__main__":
     # Check if camera opened successfully

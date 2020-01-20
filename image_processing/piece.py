@@ -241,8 +241,8 @@ class Piece(object):
 
             dists = np.lib.pad(dists[:length], (length // 4, length // 4), 'wrap')
             new_corners = []
-            width = 10
-            radius = 7
+            width = 7
+            radius = 3
             thresh = length // 20
 
             for corner in corners:

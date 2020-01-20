@@ -8,7 +8,7 @@ import algorithmics.connect_puzzle as connect_puzzle
 
 class Puzzle(object):
     # shape and color
-    METHODS = [1]
+    METHODS = [0, 1]
 
     def __init__(self, pieces):
         self._pieces = pieces
@@ -150,6 +150,13 @@ class Puzzle(object):
         for image in connected_images:
             cv2.imshow("big pic", cv2.resize(image, (0, 0), fx=0.5, fy=0.5))
             cv2.waitKey(100)
+
+        # print data from the connected puzzle
+        img = connected_images[-1]
+        for row in self._connected_puzzle:
+            for piece, center, angle in row:
+                cv2.circle(img, (int(center[0]), int(center[1])), 5, (255, 0, 0), -1)
+        cv2.imshow("mat", img)
         cv2.waitKey(0)
 
     # gets list of pieces and chooses best overall method
@@ -165,9 +172,9 @@ class Puzzle(object):
 
         # sort by piece index
         for i in range(len(rankings)):
-            print("Rankings i: ", rankings[i])
+            # print("Rankings i: ", rankings[i])
             rankings[i].sort(key=lambda x: x[1] + 4 * x[0].get_index())
-            print("Rankings i: ", rankings[i])
+            # print("Rankings i: ", rankings[i])
 
         # merge arrays (Assume they all have the same edges)
         final_ranking = []
@@ -177,7 +184,7 @@ class Puzzle(object):
             final_ranking.append((rankings[0][i][0], rankings[0][i][1], score))
 
         final_ranking.sort(key=lambda x: x[2])
-        print("Final Rankings: ", final_ranking)
+        # print("Final Rankings: ", final_ranking)
 
         # get minimal score
         return min(final_ranking, key=lambda x: x[2])
@@ -286,9 +293,9 @@ class Puzzle(object):
 
             # have we finished?
             if (
-                    curr_piece.is_puzzle_corner()
-                    or (not border and curr_piece.is_puzzle_edge())
-                    or len(row) == row_length
+                curr_piece.is_puzzle_corner()
+                or (not border and curr_piece.is_puzzle_edge())
+                or len(row) == row_length
             ):
                 break
 
@@ -312,22 +319,25 @@ class Puzzle(object):
         return curr_piece, connector_edge
 
     def greedy(self):
+        corners = [p for p in self._pieces if p.is_puzzle_corner()]
+        for corner in corners:
+            self._final_puzzle = []
+            if self.greedy_try_corner(corner):
+                break
+            # print(e)
+            # print("Corner failed: %s" % corner)
+
+    def greedy_try_corner(self, first_piece):
         curr_pieces = copy.copy(self._pieces)
 
         # start with corner
-        first_piece = [p for p in curr_pieces if p.is_puzzle_corner()][2]  # start with third (2 - index) corner piece
         first_edges = first_piece.get_puzzle_edges_indices()
 
         # get first piece orientation
         edge1, edge2 = tuple(first_edges)
-        # if edge1 == 3:
-        #
-        #     edge2, edge1 = edge1, edge2
-
-        if (edge2 + 1) % 4 == edge1:
-            edge2, edge1 = edge1, edge2
-
-        print("hey", edge1, edge2)
+        if edge2 == 0:
+            print("Bad Corner")
+            return False
 
         # move along first indices
         first_row, stop = self.complete_row(first_piece, (edge1 + 2) % 4, curr_pieces, True)
@@ -360,7 +370,6 @@ class Puzzle(object):
             flag = True
             while flag:
                 if not len(supply):
-                    not_found = True
                     break
 
                 row_first_piece_temp, row_connecting_edge_temp = self.find_closest_piece_edge(
@@ -377,9 +386,6 @@ class Puzzle(object):
                     row_first_piece = row_first_piece_temp
                     row_connecting_edge = row_connecting_edge_temp
 
-            if not_found:
-                break
-
             supply += bad_future
             row_puzzle_edge = (row_connecting_edge + 1) % 4
             row_connecting_edge = (row_connecting_edge + 2) % 4
@@ -392,8 +398,7 @@ class Puzzle(object):
             if stop:
                 break
 
-            # print("First piece", row_first_piece)
-
-        # flip puzzle if wrong, not sure about this
-        if (first_edges[1] - first_edges[0]) % 4 == 1:
-            self._final_puzzle = self._final_puzzle[::-1]
+        # flip puzzle, not sure about this
+        if len(curr_pieces):
+            return False
+        return True
