@@ -38,13 +38,13 @@ def relevant_section(img, test=True):
         # tmp = img[70:-100,300:-230]
 
         # for 20 pieces
-        tmp = img
+        # tmp = img
 
         # for 4 pieces
         # tmp = img[90:-50, 300:-250]
 
         # for 6, 8 pieces
-        # tmp = img[100:-100, 200:-250]
+        tmp = img[100:-100, 200:-250]
 
         # for overlapping
         # tmp = img[:,:-50]

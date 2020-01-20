@@ -52,8 +52,7 @@ class Puzzle(object):
     def display(self):
         mat = []
         for row in self._final_puzzle:
-            # row = [cv2.resize(piece.get_rotated_piece(edge).copy(), (200, 200)) for piece, edge in row]
-            row = [cv2.resize(piece._display.copy(), (200, 200)) for piece, edge in row]
+            row = [cv2.resize(piece.get_rotated_piece(edge).copy(), (200, 200)) for piece, edge in row]
             row_pic = np.concatenate(tuple(row))
             mat.append(row_pic)
 
